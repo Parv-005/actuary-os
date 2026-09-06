@@ -21,6 +21,7 @@ from sqlalchemy import select
 
 import app.agents.insight as insight_mod
 import app.agents.knowledge as knowledge_mod
+import app.agents.reporting as reporting_mod
 from app.llm.client import FakeLLMClient
 from app.main import app
 from app.models import (
@@ -213,6 +214,53 @@ async def test_sample_data_through_intake_and_prep(db_session, monkeypatch):
         monkeypatch.setattr(insight_mod, "get_llm_client", _insight_factory)
         monkeypatch.setattr(knowledge_mod, "get_llm_client",
                             lambda: FakeLLMClient(script=list(knowledge_script)))
+
+        # Reporting factory: prose is formatted AT CALL TIME from the live
+        # metrics, so every numeral matches the bundle by construction
+        # (same background-race reasoning as the insight factory above).
+        def _reporting_factory():
+            rows = db_session.execute(
+                select(Metric).where(
+                    Metric.workflow_id == uuid.UUID(wid))).scalars().all()
+            by_key = {(m.metric_key,
+                       tuple(sorted((m.dimensions or {}).items()))): m
+                      for m in rows}
+            cs_t = tuple(sorted(cs_dims.items()))
+
+            def _pct(v):
+                return f"{v * 100:.1f}%"
+
+            port = by_key[("loss_ratio", ())]
+            ave = by_key[("ave_variance", ())]
+            cs = by_key[("loss_ratio", cs_t)]
+            sev = by_key[("claim_severity", cs_t)]
+            freq = by_key[("claim_frequency", cs_t)]
+            contrib = by_key[("deterioration_contribution", cs_t)]
+            health = by_key[("loss_ratio", (("product", "Health"),))]
+            claims_n = int((port.flags or {}).get("claim_count", 0))
+            policies_n = int((port.flags or {}).get("policy_count", 0))
+            summary = (
+                f"Portfolio loss ratio closed at {_pct(port.value)} in "
+                f"September 2026, up {port.delta_pp:+.1f}pp on the prior "
+                f"{_pct(port.prev_value)} and {ave.value:+.1f}pp above the "
+                f"expected {_pct(port.expected_value)}. Commercial "
+                f"Construction South reached {_pct(cs.value)} from "
+                f"{_pct(cs.prev_value)} ({cs.delta_pp:+.1f}pp), "
+                f"contributing {contrib.value:.1f}% of the movement, with "
+                f"severity {sev.value:,.2f} ({sev.delta_pp:+.1f}%) against "
+                f"frequency {freq.delta_pp:+.1f}%. Health was stable at "
+                f"{_pct(health.value)}. System-of-record premium ₹120.0M "
+                f"against {claims_n} claims across {policies_n} policies.")
+            return FakeLLMClient(script=[{"json": {
+                "executive_summary": summary,
+                "open_questions": [
+                    "Is Construction South severity a sustained trend or "
+                    "large-loss noise?",
+                    "Will endorsement processing lag recur next period?"],
+            }}])
+
+        monkeypatch.setattr(reporting_mod, "get_llm_client",
+                            _reporting_factory)
 
         # run 1: intake -> CP-1 (stale v1 + v2)
         st = await _wait_for_status(client, wid, "BLOCKED")
@@ -413,3 +461,50 @@ async def test_sample_data_through_intake_and_prep(db_session, monkeypatch):
         st5 = client.get(f"/workflows/{wid}/status").json()
         assert st5["status"] == "REPORTING"
         assert not st5["pending_checkpoints"]
+
+        # run 5: reporting -> QA -> CP-6 (report draft + QA pass path)
+        st6 = await _wait_for_status(client, wid, "WAITING_FOR_HUMAN")
+        states6 = {s["stage"]: s["state"] for s in st6["stage_statuses"]}
+        assert states6["reporting"] == "succeeded"
+        assert states6["qa"] == "succeeded"
+        cp6 = next(c for c in st6["pending_checkpoints"]
+                   if c["type"] == "final_approval")
+        assert cp6["severity"] == "red" and cp6["blocking"] is True
+        assert {o["decision"] for o in cp6["options"]} == {
+            "approve", "request_revision", "reject"}
+        assert all(cp6["context"]["checklist"].values())
+
+        body = client.get(f"/workflows/{wid}/report").json()
+        assert body["report"]["version"] == 1
+        assert body["report"]["status"] == "qa_passed"
+        assert body["report"]["qa_result"]["passed"] is True
+        assert body["report"]["qa_result"]["regenerated"] is False
+        assert all(c["status"] == "PASS"
+                   for c in body["report"]["qa_result"]["checks"])
+        sections = body["report"]["sections"]
+        assert "67.3%" in sections["executive_summary"]
+        assert "60.8%" in sections["executive_summary"]
+        assert any(f["severity"] == "high" and f["evidence_count"] == 8
+                   for f in sections["findings"])
+        assert any(e["status"] == "ACCEPTED_EXCEPTION"
+                   and "endorsement" in str(e.get("resolution"))
+                   for e in sections["exceptions"])
+        assert any(d["decision"] == "no_change_required"
+                   for d in sections["decisions"])
+        assert len(sections["charts"]) == 4
+        assert any("Monthly Review 2026-08" in (c.get("title") or "")
+                   for c in sections["citations"])
+        assert any("sustained trend" in q
+                   for q in sections["open_questions"])
+        assert body["report"]["body_markdown"].startswith(
+            "# Monthly Portfolio Review")
+        assert [(h["version"], h["status"]) for h in body["history"]] == [
+            (1, "qa_passed")]
+
+        runs = {r.stage: r for r in db_session.execute(
+            select(AgentRun).where(
+                AgentRun.workflow_id == uuid.UUID(wid),
+                AgentRun.stage.in_(("reporting", "qa")))
+        ).scalars().all()}
+        assert runs["reporting"].llm_calls >= 1
+        assert runs["reporting"].prompt_hash

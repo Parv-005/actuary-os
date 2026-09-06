@@ -97,11 +97,14 @@ def _pending_blockers(session, workflow_id, types=None) -> int:
     return session.execute(q).scalar() or 0
 
 
-# The stage-entry gate guards data blockers only (CP-1/CP-2): a decision
-# gate such as CP-4 assumption variance is raised mid-investigation and
-# must flow through to INSIGHTS_READY, where the end-of-run check parks
-# the workflow for the actuary.
+# The stage-entry gate guards data blockers only (CP-1/CP-2) for the
+# deterministic spine: a decision gate such as CP-4 assumption variance is
+# raised mid-investigation and must flow through to INSIGHTS_READY, where
+# the end-of-run check parks the workflow for the actuary. REPORTING and
+# QA, however, must never start with ANY unresolved blocker — the CP-4
+# decision is what releases the workflow into REPORTING (§12).
 DATA_BLOCKER_TYPES = frozenset({"input_exception", "validation_blocker"})
+STRICT_GATE_STAGES = frozenset({"reporting", "qa"})
 
 
 def _stage_streak(session, workflow_id, stage: str, agent: str) -> list:
@@ -177,7 +180,11 @@ def _check_gate(session, wf: Workflow, spec: StageSpec) -> bool:
     Returns True when the workflow must halt."""
     if spec.stage not in GATE_STAGES:
         return False
-    if _pending_blockers(session, wf.id, DATA_BLOCKER_TYPES) == 0:
+    if spec.stage in STRICT_GATE_STAGES:
+        blockers = _pending_blockers(session, wf.id)
+    else:
+        blockers = _pending_blockers(session, wf.id, DATA_BLOCKER_TYPES)
+    if blockers == 0:
         return False
     record_event(
         session, workflow_id=wf.id, actor_type="system", actor="orchestrator",

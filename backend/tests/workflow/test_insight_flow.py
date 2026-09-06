@@ -101,6 +101,11 @@ def _patch_llms(monkeypatch, insight_script, knowledge_script=None):
 
 @pytest.mark.asyncio
 async def test_engine_investigation_no_cp4_rests(db_session, monkeypatch):
+    # freeze before reporting: this flow stops at INSIGHTS_READY (reporting
+    # and QA are covered by the report-flow and sample-run tests)
+    monkeypatch.setattr(engine, "STAGE_ORDER",
+                        [s for s in engine.STAGE_ORDER
+                         if s.stage != "reporting" and s.stage != "qa"])
     wf = _wf(db_session)
     _seed_succeeded(db_session, wf)
     ids = _seed_metrics(db_session, wf, material=False)

@@ -9,6 +9,7 @@ the agent returns WARNING when any exist, never BLOCKER.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -89,6 +90,7 @@ def _upsert_and_prune(session, wf: Workflow, rows: list[dict]) -> int:
         row.inputs = r["inputs"]
         row.dataset_version_ids = r["inputs"].get("dataset_version_ids", [])
         row.module_version = r["module_version"]
+        row.computed_at = datetime.now(UTC)
     for key, m in by_key.items():
         if key not in seen:
             session.delete(m)

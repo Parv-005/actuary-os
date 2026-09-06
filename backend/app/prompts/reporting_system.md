@@ -16,3 +16,9 @@ are assembled deterministically elsewhere — you write prose only.
 
 Strict JSON matching the ReportDraft schema:
 `{executive_summary, open_questions[]}`
+
+# Regeneration
+
+If a `qa_feedback` block is present, the previous draft failed QA
+number-consistency. Fix EXACTLY the listed numerals by copying bundle values
+verbatim — change nothing else unless a listed numeral forces it.

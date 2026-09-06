@@ -16,6 +16,8 @@ from app.agents.data_prep import run_data_prep
 from app.agents.insight import run_insight
 from app.agents.intake import run_intake
 from app.agents.knowledge import run_knowledge
+from app.agents.qa import run_qa
+from app.agents.reporting import run_reporting
 from app.agents.validation import run_validation
 
 
@@ -43,6 +45,10 @@ STAGE_ORDER: list[StageSpec] = [
               on_pass=None, run=run_insight, timeout_s=180.0),
     StageSpec(stage="knowledge", agent="knowledge", enters="INVESTIGATING",
               on_pass="INSIGHTS_READY", run=run_knowledge, timeout_s=180.0),
+    StageSpec(stage="reporting", agent="reporting", enters="REPORTING",
+              on_pass="QA", run=run_reporting, timeout_s=180.0),
+    StageSpec(stage="qa", agent="qa", enters="QA",
+              on_pass="WAITING_FOR_HUMAN", run=run_qa),
 ]
 
 STAGES: dict[str, StageSpec] = {s.stage: s for s in STAGE_ORDER}

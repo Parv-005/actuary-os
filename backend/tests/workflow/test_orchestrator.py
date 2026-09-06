@@ -272,3 +272,24 @@ async def test_end_of_run_parks_for_blocking_checkpoint(db_session,
     await engine.run_workflow(wf2.id)
     db_session.refresh(wf2)
     assert wf2.status == "INSIGHTS_READY"  # no blocker: rest, don't park
+
+
+@pytest.mark.asyncio
+async def test_strict_gate_holds_reporting_for_cp4(db_session, monkeypatch):
+    # reporting/qa gate on ANY unresolved blocker: a pending CP-4 holds the
+    # workflow at INSIGHTS_READY (no legal BLOCKED edge — no stranding),
+    # and the end-of-run check parks it for the actuary
+    monkeypatch.setattr(engine, "STAGE_ORDER",
+                        [_stub(stage="reporting", agent="reporting",
+                               enters="REPORTING", on_pass="QA")])
+    wf = _wf(db_session, status="INSIGHTS_READY")
+    db_session.add(HumanCheckpoint(
+        workflow_id=wf.id, checkpoint_type="assumption_variance",
+        severity="red", blocking=True, title="assumption variance",
+        context={}, options=[]))
+    db_session.commit()
+    await engine.run_workflow(wf.id)
+    db_session.refresh(wf)
+    assert wf.status == "WAITING_FOR_HUMAN"  # held, then parked
+    assert db_session.query(AgentRun).filter(
+        AgentRun.stage == "reporting").count() == 0  # never started
