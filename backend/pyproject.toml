@@ -10,6 +10,8 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+# B008: FastAPI idiom — Depends()/File(...) in parameter defaults
+ignore = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

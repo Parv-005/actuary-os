@@ -9,10 +9,8 @@ from app.models import User
 
 DEMO_EMAIL = "demo.actuary@vortex.app"
 
-_actor_dep = Depends(get_session)
 
-
-def get_current_actor(session: Session = _actor_dep) -> User:
+def get_current_actor(session: Session = Depends(get_session)) -> User:
     user = session.execute(select(User).where(User.email == DEMO_EMAIL)).scalar_one_or_none()
     if user is None:
         user = User(email=DEMO_EMAIL, name="Demo Actuary", role="actuary")

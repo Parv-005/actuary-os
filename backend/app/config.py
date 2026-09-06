@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 170.0         # agent cap is 180s (§6.6)
 
     cors_origins: str = "http://localhost:3000"
+    rate_limit_enabled: bool = True
 
     # Thresholds (§6.4, §6.6, §13)
     recon_pass_pct: float = 0.5

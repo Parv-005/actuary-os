@@ -19,7 +19,7 @@ def _app(limits):
     def list_wf():
         return {"ok": True}
 
-    return RateLimitMiddleware(a, limits=limits)
+    return RateLimitMiddleware(a, limits=limits, enabled=True)
 
 
 def test_upload_bucket_limit():

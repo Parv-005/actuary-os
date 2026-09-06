@@ -6,6 +6,8 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
+from app.config import settings
+
 DEFAULT_LIMITS: dict[str, tuple[int, float]] = {
     "default": (60, 60.0),
     "uploads": (10, 60.0),
@@ -32,9 +34,11 @@ class _Bucket:
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, limits: dict[str, tuple[int, float]] | None = None) -> None:
+    def __init__(self, app, limits: dict[str, tuple[int, float]] | None = None,
+                 enabled: bool | None = None) -> None:
         super().__init__(app)
         self.limits = limits or DEFAULT_LIMITS
+        self.enabled = settings.rate_limit_enabled if enabled is None else enabled
         self.buckets: dict[tuple[str, str], _Bucket] = {}
 
     @staticmethod
@@ -46,6 +50,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return "default"
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
+        if not self.enabled:
+            return await call_next(request)
         ip = request.client.host if request.client else "?"
         name = self.bucket_name(request.url.path, request.method)
         capacity, per_seconds = self.limits[name]

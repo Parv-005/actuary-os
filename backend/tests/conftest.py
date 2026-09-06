@@ -7,6 +7,7 @@ from pathlib import Path
 os.environ["APP_DB_SCHEMA"] = "test"
 os.environ.setdefault("LLM_PROVIDER", "fake")
 os.environ.setdefault("STORAGE_BACKEND", "memory")
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))

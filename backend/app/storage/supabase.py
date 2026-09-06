@@ -126,13 +126,21 @@ class MemoryStorage(BaseStorage):
 
 
 def get_storage() -> BaseStorage:
+    global _singleton
+    if _singleton is not None:
+        return _singleton
     backend = settings.storage_backend
     if backend == "supabase":
-        return SupabaseStorage(
+        _singleton = SupabaseStorage(
             settings.supabase_url, settings.supabase_service_key, settings.supabase_bucket
         )
-    if backend == "local":
-        return LocalStorage(settings.storage_local_root, settings.supabase_bucket)
-    if backend == "memory":
-        return MemoryStorage()
-    raise StorageError(f"unknown storage backend: {backend}")
+    elif backend == "local":
+        _singleton = LocalStorage(settings.storage_local_root, settings.supabase_bucket)
+    elif backend == "memory":
+        _singleton = MemoryStorage()  # shared instance: uploads persist per-process
+    else:
+        raise StorageError(f"unknown storage backend: {backend}")
+    return _singleton
+
+
+_singleton: BaseStorage | None = None

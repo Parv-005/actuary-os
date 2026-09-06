@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.ratelimit import RateLimitMiddleware
 from app.config import settings
-from app.routers import health
+from app.routers import decisions, health, workflows
 from app.utils.logging import json_log
 
 
@@ -37,6 +37,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router)
+    app.include_router(workflows.router)
+    app.include_router(decisions.router)
     return app
 
 
