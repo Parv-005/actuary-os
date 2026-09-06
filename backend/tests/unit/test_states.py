@@ -82,3 +82,11 @@ def test_investigation_path_edges():
     assert can_transition("WAITING_FOR_HUMAN", "REPORTING")
     assert can_transition("RETRYING", "INVESTIGATING")
     assert can_transition("RETRYING", "ANALYZING")
+
+
+def test_terminal_human_loop_edges():
+    # Phase 13: CP-6 approve locks + completes; CP-6 reject kills the run
+    assert can_transition("WAITING_FOR_HUMAN", "APPROVED")
+    assert can_transition("APPROVED", "COMPLETED")
+    assert can_transition("WAITING_FOR_HUMAN", "REJECTED")
+    assert not can_transition("WAITING_FOR_HUMAN", "COMPLETED")  # via APPROVED
