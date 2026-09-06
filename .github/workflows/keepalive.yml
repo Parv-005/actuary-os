@@ -1,0 +1,12 @@
+name: keepalive
+# [P1] Ping Render /health every 10 min during demo hours to avoid cold starts.
+on:
+  schedule: [{cron: "*/10 6-18 * * *"}]
+  workflow_dispatch: {}
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsS "$BACKEND_URL/health" || true
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}

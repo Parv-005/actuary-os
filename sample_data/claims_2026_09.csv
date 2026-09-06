@@ -1,0 +1,266 @@
+claim_id,policy_id,product,segment,region,claim_type,event_date,report_date,status,incurred_amount
+C00281,P06031,Commercial,Construction,South,Marine Transit,2026-08-16,2026-08-20,Open,172311
+C00282,P06326,Commercial,Construction,South,Property Damage,2026-08-06,2026-08-08,Closed,158131
+C00283,P06055,Commercial,Construction,South,Liability,2026-08-24,2026-08-28,Closed,275489
+C00284,P06125,Commercial,Construction,South,Liability,2026-08-04,2026-08-11,Closed,239852
+C00285,P06162,Commercial,Construction,South,Liability,2026-08-01,2026-08-08,Open,361768
+C00286,P06362,Commercial,Construction,South,Property Damage,2026-08-22,2026-08-23,Open,112789
+C00287,P06410,Commercial,Construction,South,Liability,2026-08-18,2026-08-25,Closed,302651
+C00288,P06145,Commercial,Construction,South,Property Damage,2026-08-09,2026-08-14,Closed,333305
+C00289,P06132,Commercial,Construction,South,Fire,2026-08-26,2026-08-28,Open,419457
+C00290,P06071,Commercial,Construction,South,Fire,2026-08-01,2026-08-06,Closed,147005
+C00291,P06386,Commercial,Construction,South,Marine Transit,2026-08-15,2026-08-21,Open,180142
+C00292,P06257,Commercial,Construction,South,Property Damage,2026-08-15,2026-08-16,Open,406439
+C00293,P06095,Commercial,Construction,South,Marine Transit,2026-08-13,2026-08-13,Closed,306906
+C00294,P06292,Commercial,Construction,South,Fire,2026-08-28,2026-08-28,Closed,111483
+C00295,P06275,Commercial,Construction,South,Liability,2026-08-12,2026-08-17,Open,124442
+C00296,P06218,Commercial,Construction,South,Property Damage,2026-08-05,2026-08-14,Closed,357960
+C00297,P06127,Commercial,Construction,South,Liability,2026-08-10,2026-08-13,Closed,286078
+C00298,P06352,Commercial,Construction,South,Property Damage,2026-08-08,2026-08-14,Closed,285399
+C00299,P06206,Commercial,Construction,South,Liability,2026-08-03,2026-08-11,Closed,389100
+C00300,P06237,Commercial,Construction,South,Marine Transit,2026-08-13,2026-08-15,Closed,178445
+C00301,P06238,Commercial,Construction,South,Marine Transit,2026-08-13,2026-08-21,Closed,151842
+C00302,P06179,Commercial,Construction,South,Marine Transit,2026-08-16,2026-08-18,Open,301358
+C00303,P06246,Commercial,Construction,South,Property Damage,2026-08-23,2026-08-26,Closed,389943
+C00304,P06122,Commercial,Construction,South,Fire,2026-08-24,2026-08-28,Closed,186410
+C00305,P06389,Commercial,Construction,South,Property Damage,2026-08-26,2026-08-28,Open,323614
+C00306,P06365,Commercial,Construction,South,Fire,2026-08-25,2026-08-28,Closed,149187
+C00307,P06337,Commercial,Construction,South,Liability,2026-08-09,2026-08-11,Closed,155628
+C00308,P06026,Commercial,Construction,South,Liability,2026-08-20,2026-08-20,Open,396238
+C00309,P06182,Commercial,Construction,South,Marine Transit,2026-08-17,2026-08-25,Closed,137838
+C00310,P06016,Commercial,Construction,South,Marine Transit,2026-08-25,2026-08-28,Closed,106964
+C00311,P06230,Commercial,Construction,South,Fire,2026-08-04,2026-08-12,Closed,354497
+C00312,P06100,Commercial,Construction,South,Marine Transit,2026-08-08,2026-08-15,Closed,218484
+C00313,P06280,Commercial,Construction,South,Property Damage,2026-08-10,2026-08-16,Closed,229746
+C00314,P06420,Commercial,Construction,South,Fire,2026-08-06,2026-08-12,Closed,362715
+C00315,P06101,Commercial,Construction,South,Liability,2026-08-19,2026-08-23,Closed,158275
+C00316,P06180,Commercial,Construction,South,Liability,2026-08-05,2026-08-13,Open,313402
+C00317,P06175,Commercial,Construction,South,Liability,2026-08-07,2026-08-10,Closed,202331
+C00318,P06387,Commercial,Construction,South,Property Damage,2026-08-07,2026-08-10,Open,133321
+C00319,P06324,Commercial,Construction,South,Marine Transit,2026-08-09,2026-08-13,Closed,325660
+C00320,P06196,Commercial,Construction,South,Property Damage,2026-08-14,2026-08-19,Open,204025
+C00321,P06196,Commercial,Construction,South,Marine Transit,2026-08-18,2026-08-21,Closed,384726
+C00322,P06209,Commercial,Construction,South,Liability,2026-08-25,2026-08-28,Closed,402017
+C00323,P06120,Commercial,Construction,South,Marine Transit,2026-08-22,2026-08-23,Closed,378938
+C00324,P06318,Commercial,Construction,South,Liability,2026-08-18,2026-08-21,Open,205241
+C00325,P06094,Commercial,Construction,South,Marine Transit,2026-08-21,2026-08-25,Closed,176956
+C00326,P06280,Commercial,Construction,South,Fire,2026-08-16,2026-08-17,Closed,393366
+C00327,P06477,Commercial,Construction,North,Liability,2026-08-15,2026-08-19,Open,234342
+C00328,P06487,Commercial,Construction,North,Property Damage,2026-08-12,2026-08-21,Closed,165118
+C00329,P06651,Commercial,Construction,North,Fire,2026-08-02,2026-08-08,Closed,196985
+C00330,P06699,Commercial,Construction,North,Liability,2026-08-02,2026-08-03,Closed,92859
+C00331,P06663,Commercial,Construction,North,Fire,2026-08-01,2026-08-04,Closed,197413
+C00332,P06529,Commercial,Construction,North,Property Damage,2026-08-23,2026-08-23,Closed,127094
+C00333,P06599,Commercial,Construction,North,Liability,2026-08-02,2026-08-07,Open,129888
+C00334,P06535,Commercial,Construction,North,Fire,2026-08-08,2026-08-13,Closed,92328
+C00335,P06695,Commercial,Construction,North,Property Damage,2026-08-01,2026-08-01,Open,302107
+C00336,P06651,Commercial,Construction,North,Property Damage,2026-08-04,2026-08-04,Closed,373330
+C00337,P06613,Commercial,Construction,North,Fire,2026-08-25,2026-08-26,Closed,279416
+C00338,P06595,Commercial,Construction,North,Fire,2026-08-07,2026-08-07,Closed,120130
+C00339,P06672,Commercial,Construction,North,Marine Transit,2026-08-21,2026-08-28,Open,391027
+C00340,P06637,Commercial,Construction,North,Liability,2026-08-26,2026-08-28,Closed,386763
+C00341,P06793,Commercial,Construction,East,Property Damage,2026-08-13,2026-08-18,Closed,245360
+C00342,P06716,Commercial,Construction,East,Property Damage,2026-08-15,2026-08-22,Closed,208486
+C00343,P06783,Commercial,Construction,East,Marine Transit,2026-08-22,2026-08-23,Open,272839
+C00344,P06790,Commercial,Construction,East,Fire,2026-08-05,2026-08-08,Open,174115
+C00345,P06859,Commercial,Construction,East,Liability,2026-08-14,2026-08-17,Closed,114265
+C00346,P06870,Commercial,Construction,East,Liability,2026-08-22,2026-08-26,Closed,308291
+C00347,P06725,Commercial,Construction,East,Fire,2026-08-28,2026-08-28,Open,299171
+C00348,P06726,Commercial,Construction,East,Property Damage,2026-08-17,2026-08-22,Closed,172653
+C00349,P06901,Commercial,Construction,East,Fire,2026-08-26,2026-08-28,Closed,262653
+C00350,P06743,Commercial,Construction,East,Marine Transit,2026-08-05,2026-08-08,Open,210154
+C00351,P06897,Commercial,Construction,East,Marine Transit,2026-08-28,2026-08-28,Closed,281382
+C00352,P06833,Commercial,Construction,East,Marine Transit,2026-08-04,2026-08-09,Closed,183031
+C00353,P06937,Commercial,Construction,West,Fire,2026-08-24,2026-08-25,Closed,336205
+C00354,P07067,Commercial,Construction,West,Liability,2026-08-19,2026-08-19,Closed,197371
+C00355,P07111,Commercial,Construction,West,Liability,2026-08-20,2026-08-25,Open,249167
+C00356,P06963,Commercial,Construction,West,Liability,2026-08-11,2026-08-18,Closed,127353
+C00357,P06994,Commercial,Construction,West,Liability,2026-08-08,2026-08-17,Closed,376462
+C00358,P07080,Commercial,Construction,West,Liability,2026-08-13,2026-08-17,Closed,125276
+C00359,P07095,Commercial,Construction,West,Fire,2026-08-02,2026-08-02,Open,155510
+C00360,P06954,Commercial,Construction,West,Property Damage,2026-08-04,2026-08-05,Closed,183072
+C00361,P06971,Commercial,Construction,West,Fire,2026-08-21,2026-08-22,Closed,344374
+C00362,P06974,Commercial,Construction,West,Marine Transit,2026-08-20,2026-08-22,Closed,306096
+C00363,P07117,Commercial,Construction,West,Property Damage,2026-08-09,2026-08-17,Closed,93914
+C00364,P07225,Commercial,SME,North,Marine Transit,2026-08-18,2026-08-19,Closed,128417
+C00365,P07140,Commercial,SME,North,Marine Transit,2026-08-21,2026-08-28,Open,245580
+C00366,P07182,Commercial,SME,North,Property Damage,2026-08-21,2026-08-22,Closed,200540
+C00367,P07199,Commercial,SME,North,Marine Transit,2026-08-23,2026-08-28,Open,164049
+C00368,P07315,Commercial,SME,North,Liability,2026-08-13,2026-08-13,Open,386319
+C00369,P07211,Commercial,SME,North,Fire,2026-08-05,2026-08-05,Closed,234252
+C00370,P07239,Commercial,SME,North,Liability,2026-08-23,2026-08-27,Closed,377074
+C00371,P07213,Commercial,SME,North,Property Damage,2026-08-16,2026-08-24,Open,142383
+C00372,P07240,Commercial,SME,North,Marine Transit,2026-08-02,2026-08-09,Closed,148357
+C00373,P07198,Commercial,SME,North,Property Damage,2026-08-19,2026-08-22,Closed,274956
+C00374,P07306,Commercial,SME,North,Fire,2026-08-25,2026-08-28,Closed,174873
+C00375,P07470,Commercial,SME,South,Fire,2026-08-22,2026-08-26,Closed,220919
+C00376,P07464,Commercial,SME,South,Liability,2026-08-13,2026-08-19,Closed,231114
+C00377,P07506,Commercial,SME,South,Liability,2026-08-19,2026-08-20,Closed,261725
+C00378,P07489,Commercial,SME,South,Fire,2026-08-11,2026-08-12,Closed,258306
+C00379,P07373,Commercial,SME,South,Property Damage,2026-08-28,2026-08-28,Closed,139060
+C00380,P07378,Commercial,SME,South,Property Damage,2026-08-19,2026-08-28,Closed,238672
+C00381,P07553,Commercial,SME,South,Fire,2026-08-15,2026-08-23,Open,177055
+C00382,P07375,Commercial,SME,South,Fire,2026-08-16,2026-08-16,Closed,253437
+C00383,P07432,Commercial,SME,South,Property Damage,2026-08-27,2026-08-28,Closed,229312
+C00384,P07348,Commercial,SME,South,Property Damage,2026-08-13,2026-08-19,Open,129738
+C00385,P07355,Commercial,SME,South,Fire,2026-08-05,2026-08-08,Closed,279862
+C00386,P07595,Commercial,SME,East,Property Damage,2026-08-20,2026-08-22,Open,180848
+C00387,P07689,Commercial,SME,East,Marine Transit,2026-08-18,2026-08-23,Closed,141069
+C00388,P07763,Commercial,SME,East,Liability,2026-08-10,2026-08-15,Closed,229441
+C00389,P07625,Commercial,SME,East,Liability,2026-08-13,2026-08-22,Open,264074
+C00390,P07610,Commercial,SME,East,Property Damage,2026-08-19,2026-08-25,Open,207604
+C00391,P07748,Commercial,SME,East,Marine Transit,2026-08-27,2026-08-28,Open,205793
+C00392,P07767,Commercial,SME,East,Liability,2026-08-17,2026-08-22,Closed,306184
+C00393,P07696,Commercial,SME,East,Marine Transit,2026-08-08,2026-08-08,Closed,170123
+C00394,P07614,Commercial,SME,East,Marine Transit,2026-08-10,2026-08-12,Closed,261197
+C00395,P07667,Commercial,SME,East,Liability,2026-08-23,2026-08-28,Open,337667
+C00396,P07944,Commercial,SME,West,Liability,2026-08-14,2026-08-20,Open,382385
+C00397,P07770,Commercial,SME,West,Property Damage,2026-08-14,2026-08-15,Closed,295509
+C00398,P07826,Commercial,SME,West,Liability,2026-08-27,2026-08-28,Closed,162423
+C00399,P07917,Commercial,SME,West,Marine Transit,2026-08-03,2026-08-04,Open,399328
+C00400,P07772,Commercial,SME,West,Property Damage,2026-08-18,2026-08-27,Closed,152499
+C00401,P07897,Commercial,SME,West,Liability,2026-08-03,2026-08-12,Closed,144973
+C00402,P07818,Commercial,SME,West,Fire,2026-08-23,2026-08-28,Closed,198329
+C00403,P07819,Commercial,SME,West,Liability,2026-08-12,2026-08-16,Closed,280554
+C00404,P08018,Commercial,Property,North,Marine Transit,2026-08-24,2026-08-24,Open,290654
+C00405,P07991,Commercial,Property,North,Liability,2026-08-18,2026-08-26,Closed,176515
+C00406,P08097,Commercial,Property,North,Liability,2026-08-26,2026-08-28,Open,498584
+C00407,P08089,Commercial,Property,North,Marine Transit,2026-08-21,2026-08-28,Open,427881
+C00408,P08089,Commercial,Property,North,Liability,2026-08-06,2026-08-11,Closed,145854
+C00409,P08001,Commercial,Property,North,Liability,2026-08-13,2026-08-17,Closed,177681
+C00410,P07980,Commercial,Property,North,Property Damage,2026-08-24,2026-08-24,Open,169445
+C00411,P08015,Commercial,Property,North,Marine Transit,2026-08-15,2026-08-18,Closed,154586
+C00412,P08172,Commercial,Property,South,Marine Transit,2026-08-19,2026-08-28,Open,187046
+C00413,P08166,Commercial,Property,South,Liability,2026-08-06,2026-08-13,Closed,302924
+C00414,P08272,Commercial,Property,South,Fire,2026-08-10,2026-08-14,Closed,290666
+C00415,P08169,Commercial,Property,South,Liability,2026-08-10,2026-08-16,Closed,101820
+C00416,P08203,Commercial,Property,South,Marine Transit,2026-08-28,2026-08-28,Open,252362
+C00417,P08213,Commercial,Property,South,Property Damage,2026-08-21,2026-08-28,Open,104575
+C00418,P08273,Commercial,Property,South,Property Damage,2026-08-24,2026-08-25,Open,304009
+C00419,P08144,Commercial,Property,South,Liability,2026-08-01,2026-08-02,Closed,384398
+C00420,P08349,Commercial,Property,East,Liability,2026-08-17,2026-08-18,Closed,176490
+C00421,P08379,Commercial,Property,East,Marine Transit,2026-08-11,2026-08-12,Closed,181106
+C00422,P08407,Commercial,Property,East,Marine Transit,2026-08-04,2026-08-11,Closed,264181
+C00423,P08332,Commercial,Property,East,Property Damage,2026-08-26,2026-08-28,Closed,227861
+C00424,P08418,Commercial,Property,East,Liability,2026-08-26,2026-08-28,Closed,336700
+C00425,P08369,Commercial,Property,East,Property Damage,2026-08-23,2026-08-28,Closed,129317
+C00426,P08433,Commercial,Property,East,Property Damage,2026-08-12,2026-08-16,Open,271945
+C00427,P08483,Commercial,Property,West,Property Damage,2026-08-17,2026-08-25,Closed,158725
+C00428,P08505,Commercial,Property,West,Liability,2026-08-25,2026-08-28,Closed,96861
+C00429,P08481,Commercial,Property,West,Property Damage,2026-08-05,2026-08-12,Closed,257195
+C00430,P08449,Commercial,Property,West,Property Damage,2026-08-01,2026-08-09,Closed,255506
+C00431,P08491,Commercial,Property,West,Marine Transit,2026-08-02,2026-08-11,Open,149088
+C00432,P08452,Commercial,Property,West,Property Damage,2026-08-12,2026-08-12,Closed,131349
+C00433,P08493,Commercial,Property,West,Liability,2026-08-05,2026-08-08,Closed,198676
+C00434,P08577,Commercial,Marine Cargo,West,Liability,2026-08-02,2026-08-06,Closed,73843
+C00435,P08576,Commercial,Marine Cargo,West,Fire,2026-08-12,2026-08-17,Closed,36925
+C00436,P08576,Commercial,Marine Cargo,West,Marine Transit,2026-08-06,2026-08-06,Open,93136
+C00437,P08576,Commercial,Marine Cargo,West,Marine Transit,2026-08-15,2026-08-16,Closed,75096
+C00438,P08689,Motor,Motor,North,Own Damage,2026-08-27,2026-08-28,Open,446425
+C00439,P08814,Motor,Motor,North,Own Damage,2026-08-26,2026-08-27,Open,152515
+C00440,P08929,Motor,Motor,North,Own Damage,2026-08-28,2026-08-28,Closed,185101
+C00441,P08858,Motor,Motor,North,Third Party,2026-08-09,2026-08-11,Closed,323748
+C00442,P08771,Motor,Motor,North,Third Party,2026-08-25,2026-08-28,Closed,387393
+C00443,P08952,Motor,Motor,North,Third Party,2026-08-19,2026-08-24,Closed,327073
+C00444,P08683,Motor,Motor,North,Own Damage,2026-08-05,2026-08-11,Open,410943
+C00445,P08639,Motor,Motor,North,Own Damage,2026-08-12,2026-08-14,Closed,458206
+C00446,P08948,Motor,Motor,North,Own Damage,2026-08-22,2026-08-25,Closed,542190
+C00447,P08917,Motor,Motor,North,Own Damage,2026-08-19,2026-08-21,Closed,281990
+C00448,P08962,Motor,Motor,North,Own Damage,2026-08-17,2026-08-18,Closed,200946
+C00449,P08766,Motor,Motor,North,Third Party,2026-08-17,2026-08-23,Closed,244762
+C00450,P08955,Motor,Motor,North,Third Party,2026-08-16,2026-08-18,Closed,194463
+C00451,P08697,Motor,Motor,North,Third Party,2026-08-17,2026-08-24,Closed,301240
+C00452,P08626,Motor,Motor,North,Own Damage,2026-08-25,2026-08-28,Closed,508789
+C00453,P08933,Motor,Motor,North,Third Party,2026-08-11,2026-08-13,Closed,280766
+C00454,P09432,Motor,Motor,South,Own Damage,2026-08-26,2026-08-27,Closed,321396
+C00455,P09378,Motor,Motor,South,Third Party,2026-08-09,2026-08-18,Closed,444402
+C00456,P09439,Motor,Motor,South,Own Damage,2026-08-12,2026-08-17,Open,510088
+C00457,P09468,Motor,Motor,South,Own Damage,2026-08-08,2026-08-15,Closed,238817
+C00458,P09039,Motor,Motor,South,Own Damage,2026-08-08,2026-08-15,Closed,509641
+C00459,P09196,Motor,Motor,South,Own Damage,2026-08-27,2026-08-28,Closed,173360
+C00460,P09216,Motor,Motor,South,Third Party,2026-08-08,2026-08-11,Closed,541966
+C00461,P09415,Motor,Motor,South,Own Damage,2026-08-02,2026-08-02,Closed,197180
+C00462,P09453,Motor,Motor,South,Third Party,2026-08-11,2026-08-16,Closed,240186
+C00463,P09396,Motor,Motor,South,Third Party,2026-08-02,2026-08-11,Closed,168227
+C00464,P09409,Motor,Motor,South,Own Damage,2026-08-05,2026-08-08,Closed,468156
+C00465,P09151,Motor,Motor,South,Third Party,2026-08-07,2026-08-13,Open,544744
+C00466,P09260,Motor,Motor,South,Own Damage,2026-08-13,2026-08-17,Closed,253225
+C00467,P09376,Motor,Motor,South,Third Party,2026-08-06,2026-08-11,Closed,265371
+C00468,P09048,Motor,Motor,South,Third Party,2026-08-16,2026-08-22,Open,245591
+C00469,P09523,Motor,Motor,East,Third Party,2026-08-17,2026-08-19,Closed,295180
+C00470,P09852,Motor,Motor,East,Own Damage,2026-08-07,2026-08-13,Open,240204
+C00471,P09760,Motor,Motor,East,Third Party,2026-08-06,2026-08-07,Open,432559
+C00472,P09505,Motor,Motor,East,Third Party,2026-08-13,2026-08-13,Closed,247603
+C00473,P09765,Motor,Motor,East,Third Party,2026-08-18,2026-08-23,Open,354777
+C00474,P09797,Motor,Motor,East,Own Damage,2026-08-27,2026-08-27,Open,353262
+C00475,P09726,Motor,Motor,East,Own Damage,2026-08-17,2026-08-20,Closed,135778
+C00476,P09841,Motor,Motor,East,Own Damage,2026-08-28,2026-08-28,Open,278184
+C00477,P09825,Motor,Motor,East,Own Damage,2026-08-25,2026-08-25,Closed,201193
+C00478,P09783,Motor,Motor,East,Own Damage,2026-08-02,2026-08-02,Open,192261
+C00479,P09579,Motor,Motor,East,Own Damage,2026-08-15,2026-08-16,Open,367520
+C00480,P09526,Motor,Motor,East,Own Damage,2026-08-02,2026-08-06,Closed,119847
+C00481,P09533,Motor,Motor,East,Third Party,2026-08-05,2026-08-12,Open,488409
+C00482,P09730,Motor,Motor,East,Third Party,2026-08-25,2026-08-25,Open,267623
+C00483,P10062,Motor,Motor,West,Third Party,2026-08-28,2026-08-28,Closed,205608
+C00484,P10003,Motor,Motor,West,Own Damage,2026-08-15,2026-08-24,Open,170502
+C00485,P10126,Motor,Motor,West,Own Damage,2026-08-16,2026-08-24,Closed,247759
+C00486,P10242,Motor,Motor,West,Own Damage,2026-08-05,2026-08-06,Open,230169
+C00487,P10097,Motor,Motor,West,Third Party,2026-08-19,2026-08-23,Closed,176420
+C00488,P10013,Motor,Motor,West,Own Damage,2026-08-24,2026-08-24,Closed,455681
+C00489,P09954,Motor,Motor,West,Own Damage,2026-08-04,2026-08-04,Closed,284576
+C00490,P10164,Motor,Motor,West,Third Party,2026-08-28,2026-08-28,Closed,329993
+C00491,P10083,Motor,Motor,West,Own Damage,2026-08-10,2026-08-13,Closed,153029
+C00492,P10007,Motor,Motor,West,Own Damage,2026-08-17,2026-08-23,Closed,330705
+C00493,P09928,Motor,Motor,West,Own Damage,2026-08-28,2026-08-28,Closed,310823
+C00494,P10013,Motor,Motor,West,Third Party,2026-08-19,2026-08-22,Closed,447681
+C00495,P09979,Motor,Motor,West,Own Damage,2026-08-02,2026-08-10,Closed,258854
+C00496,P10340,Health,Health,North,Hospitalization,2026-08-24,2026-08-28,Closed,380630
+C00497,P10492,Health,Health,North,Hospitalization,2026-08-06,2026-08-12,Closed,196112
+C00498,P10305,Health,Health,North,Hospitalization,2026-08-26,2026-08-28,Closed,497186
+C00499,P10409,Health,Health,North,Hospitalization,2026-08-18,2026-08-23,Closed,167527
+C00500,P10324,Health,Health,North,Hospitalization,2026-08-19,2026-08-26,Open,354271
+C00501,P10462,Health,Health,North,Day Care,2026-08-25,2026-08-28,Closed,576290
+C00502,P10422,Health,Health,North,Day Care,2026-08-03,2026-08-12,Closed,212650
+C00503,P10410,Health,Health,North,Day Care,2026-08-12,2026-08-16,Open,232294
+C00504,P10660,Health,Health,South,Day Care,2026-08-26,2026-08-28,Open,373398
+C00505,P10616,Health,Health,South,Day Care,2026-08-06,2026-08-14,Closed,273192
+C00506,P10592,Health,Health,South,Day Care,2026-08-20,2026-08-25,Closed,226197
+C00507,P10631,Health,Health,South,Day Care,2026-08-16,2026-08-24,Closed,419786
+C00508,P10517,Health,Health,South,Day Care,2026-08-05,2026-08-13,Closed,314854
+C00509,P10699,Health,Health,South,Hospitalization,2026-08-22,2026-08-23,Closed,284338
+C00510,P10587,Health,Health,South,Day Care,2026-08-06,2026-08-11,Closed,302761
+C00511,P10556,Health,Health,South,Hospitalization,2026-08-09,2026-08-15,Closed,313394
+C00512,P10841,Health,Health,East,Day Care,2026-08-21,2026-08-28,Closed,288037
+C00513,P10789,Health,Health,East,Hospitalization,2026-08-17,2026-08-25,Closed,270674
+C00514,P10746,Health,Health,East,Hospitalization,2026-08-07,2026-08-10,Open,277088
+C00515,P10917,Health,Health,East,Hospitalization,2026-08-15,2026-08-15,Open,532103
+C00516,P10886,Health,Health,East,Day Care,2026-08-22,2026-08-27,Closed,295675
+C00517,P10761,Health,Health,East,Day Care,2026-08-09,2026-08-15,Open,385362
+C00518,P10804,Health,Health,East,Hospitalization,2026-08-19,2026-08-21,Closed,349941
+C00519,P11045,Health,Health,West,Hospitalization,2026-08-10,2026-08-11,Closed,425126
+C00520,P11029,Health,Health,West,Hospitalization,2026-08-12,2026-08-12,Closed,158163
+C00521,P10927,Health,Health,West,Hospitalization,2026-08-02,2026-08-08,Closed,314063
+C00522,P11109,Health,Health,West,Day Care,2026-08-20,2026-08-27,Closed,214618
+C00523,P11056,Health,Health,West,Day Care,2026-08-23,2026-08-28,Closed,411331
+C00524,P11110,Health,Health,West,Day Care,2026-08-14,2026-08-22,Open,280020
+C00525,P10971,Health,Health,West,Hospitalization,2026-08-07,2026-08-16,Closed,486519
+C00526,P11253,Home,Home,North,Burglary,2026-08-03,2026-08-03,Closed,454911
+C00527,P11151,Home,Home,North,Burglary,2026-08-28,2026-08-28,Open,156878
+C00528,P11243,Home,Home,North,Burglary,2026-08-10,2026-08-17,Closed,388053
+C00529,P11238,Home,Home,North,Property Damage,2026-08-04,2026-08-09,Closed,254869
+C00530,P11193,Home,Home,North,Property Damage,2026-08-26,2026-08-28,Closed,380497
+C00531,P11225,Home,Home,North,Property Damage,2026-08-15,2026-08-22,Open,282692
+C00532,P11283,Home,Home,South,Burglary,2026-08-17,2026-08-19,Closed,238198
+C00533,P11318,Home,Home,South,Property Damage,2026-08-01,2026-08-06,Closed,551655
+C00534,P11395,Home,Home,South,Property Damage,2026-08-09,2026-08-14,Closed,255445
+C00535,P11388,Home,Home,South,Property Damage,2026-08-06,2026-08-14,Closed,371259
+C00536,P11329,Home,Home,South,Burglary,2026-08-06,2026-08-07,Closed,369043
+C00537,P11424,Home,Home,East,Burglary,2026-08-13,2026-08-21,Closed,448360
+C00538,P11526,Home,Home,East,Burglary,2026-08-03,2026-08-05,Closed,173169
+C00539,P11430,Home,Home,East,Property Damage,2026-08-05,2026-08-12,Closed,481276
+C00540,P11450,Home,Home,East,Property Damage,2026-08-24,2026-08-25,Closed,262048
+C00541,P11471,Home,Home,East,Property Damage,2026-08-15,2026-08-20,Open,288447
+C00542,P11607,Home,Home,West,Property Damage,2026-08-16,2026-08-24,Closed,412732
+C00543,P11645,Home,Home,West,Property Damage,2026-08-07,2026-08-08,Closed,342552
+C00544,P11629,Home,Home,West,Burglary,2026-08-14,2026-08-17,Closed,156076
+C00545,P11586,Home,Home,West,Property Damage,2026-08-19,2026-08-22,Closed,419313
