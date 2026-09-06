@@ -7,6 +7,8 @@ from pathlib import Path
 
 import psycopg
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 

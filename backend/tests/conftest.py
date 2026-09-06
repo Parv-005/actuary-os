@@ -31,7 +31,12 @@ def migrations():
 
 @pytest.fixture(autouse=True)
 def clean_db(migrations):
+    _truncate()
     yield
+    _truncate()
+
+
+def _truncate() -> None:
     skip = {"schema_migrations"}
     with engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
