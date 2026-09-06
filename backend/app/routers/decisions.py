@@ -1,14 +1,24 @@
 """Decisions router (§10/§12): the ONLY path out of BLOCKED/WAITING_FOR_HUMAN.
-Phase 6 implements CP-1 (input exception); later phases extend the mapping."""
+Phase 7 covers CP-1 (input exception), CP-3 (schema mapping, yellow) and the
+data-prep validation blocker. Later phases extend the mapping."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.auth.actor import get_current_actor
 from app.db import get_session
-from app.models import HumanCheckpoint, HumanDecision, User, Workflow
-from app.orchestrator import engine
+from app.models import (
+    AgentRun,
+    DatasetVersion,
+    HumanCheckpoint,
+    HumanDecision,
+    User,
+    ValidationResult,
+    Workflow,
+)
+from app.orchestrator import engine, states
 from app.schemas.workflow import DecisionRequest
 from app.services import checkpoints as cp_svc
 from app.services.audit import record_event
@@ -16,6 +26,78 @@ from app.services.audit import record_event
 router = APIRouter(prefix="/workflows", tags=["decisions"])
 
 CP1_DECISIONS = {"select_file", "reject_data", "request_rerun"}
+CP3_DECISIONS = {"confirm_mapping", "ignore_column"}
+PREP_BLOCKER_DECISIONS = {"accept_exception", "request_rerun", "reject_data"}
+
+RESTDANDARDIZE_ELIGIBLE = {states.INGESTING, states.VALIDATING, states.VALIDATED}
+
+
+def _reset_for_restandardize(session: Session, wf: Workflow) -> None:
+    """confirm_mapping: drop prep/validation outputs so the engine re-runs them."""
+    for stage in ("data_prep", "validation"):
+        session.execute(delete(AgentRun).where(
+            AgentRun.workflow_id == wf.id, AgentRun.stage == stage))
+    session.execute(delete(DatasetVersion).where(DatasetVersion.workflow_id == wf.id))
+    session.execute(delete(ValidationResult).where(ValidationResult.workflow_id == wf.id))
+    wf.stage = "data_prep"
+    wf.error = None
+    if wf.status != states.INGESTING:
+        states.apply_transition(session, wf, states.INGESTING, actor_type="human",
+                                actor="checkpoint_decision",
+                                reason="CP-3 confirm_mapping — re-standardize")
+
+
+def _apply_cp3(session: Session, wf: Workflow, body: DecisionRequest,
+               actor: User) -> str:
+    if body.decision == "confirm_mapping":
+        if wf.status not in RESTDANDARDIZE_ELIGIBLE:
+            raise HTTPException(409, "too late to remap (analysis already ran)",
+                                {"code": "too_late"})
+        column = body.payload.get("column")
+        canonical = body.payload.get("canonical")
+        if not column or not canonical:
+            raise HTTPException(400, "confirm_mapping requires payload.column and "
+                                     "payload.canonical", {"code": "bad_payload"})
+        cfg = dict(wf.config or {})
+        overrides = dict(cfg.get("column_overrides", {}))
+        overrides[column] = canonical
+        cfg["column_overrides"] = overrides
+        wf.config = cfg
+        _reset_for_restandardize(session, wf)
+    else:  # ignore_column
+        cfg = dict(wf.config or {})
+        ignored = list(cfg.get("ignored_columns", []))
+        for col in body.payload.get("columns", [body.payload.get("column")]):
+            if col and col not in ignored:
+                ignored.append(col)
+        cfg["ignored_columns"] = ignored
+        wf.config = cfg
+    return wf.status
+
+
+def _apply_prep_blocker(session: Session, wf: Workflow, body: DecisionRequest,
+                        actor: User) -> str:
+    if body.decision == "accept_exception":
+        cfg = dict(wf.config or {})
+        accepted = list(cfg.get("accepted_exceptions", []))
+        accepted.append({
+            "source": "data_prep", "decision_id": None,
+            "note": body.rationale or "accepted by actuary",
+        })
+        cfg["accepted_exceptions"] = accepted
+        wf.config = cfg
+        states.apply_transition(session, wf, states.VALIDATING, actor_type="human",
+                                actor=actor.name,
+                                reason="data-prep blocker accepted as exception")
+    elif body.decision == "request_rerun":
+        session.execute(delete(AgentRun).where(
+            AgentRun.workflow_id == wf.id, AgentRun.stage == "data_prep"))
+        states.apply_transition(session, wf, states.INGESTING, actor_type="human",
+                                actor=actor.name, reason="re-run data prep")
+    else:  # reject_data
+        states.apply_transition(session, wf, states.REJECTED, actor_type="human",
+                                actor=actor.name, reason="data rejected at prep blocker")
+    return wf.status
 
 
 @router.post("/{workflow_id}/decisions", status_code=202)
@@ -31,12 +113,11 @@ def post_decision(
 
     err = cp_svc.validate_decision(body.decision, body.rationale)
     if err:
-        raise HTTPException(422, err, {"code": "rationale_required"
-                                       if "rationale" in err else "bad_decision"})
+        code = "rationale_required" if "rationale" in err else "bad_decision"
+        raise HTTPException(422, err, {"code": code})
 
     if not body.checkpoint_id:
-        raise HTTPException(400, "checkpoint_id required (Phase 6 supports checkpoints)",
-                            {"code": "bad_target"})
+        raise HTTPException(400, "checkpoint_id required", {"code": "bad_target"})
     cp = session.get(HumanCheckpoint, body.checkpoint_id)
     if cp is None or cp.workflow_id != wf.id:
         raise HTTPException(400, "checkpoint does not belong to this workflow",
@@ -44,13 +125,24 @@ def post_decision(
     if cp.status != "pending":
         raise HTTPException(409, "checkpoint already resolved", {"code": "not_pending"})
 
-    if cp.checkpoint_type == "input_exception":
+    cp_type = cp.checkpoint_type
+    if cp_type == "input_exception":
         if body.decision not in CP1_DECISIONS:
             raise HTTPException(400,
                                 f"decision '{body.decision}' not valid for input_exception",
                                 {"code": "bad_decision"})
+    elif cp_type == "schema_mapping":
+        if body.decision not in CP3_DECISIONS:
+            raise HTTPException(400,
+                                f"decision '{body.decision}' not valid for schema_mapping",
+                                {"code": "bad_decision"})
+    elif cp_type == "validation_blocker":
+        if body.decision not in PREP_BLOCKER_DECISIONS:
+            raise HTTPException(400,
+                                f"decision '{body.decision}' not valid for validation_blocker",
+                                {"code": "bad_decision"})
     else:
-        raise HTTPException(400, f"checkpoint type '{cp.checkpoint_type}' not yet supported",
+        raise HTTPException(400, f"checkpoint type '{cp_type}' not yet supported",
                             {"code": "not_implemented"})
 
     row = HumanDecision(
@@ -65,13 +157,18 @@ def post_decision(
                  summary=body.rationale[:200] or body.decision,
                  details={"checkpoint": str(cp.id), "payload": body.payload})
 
-    if cp.checkpoint_type == "input_exception":
+    if cp_type == "input_exception":
         new_status = cp_svc.apply_cp1_decision(session, wf, cp, body.decision,
                                                body.payload, actor)
+    elif cp_type == "schema_mapping":
+        new_status = _apply_cp3(session, wf, body, actor)
+    else:
+        new_status = _apply_prep_blocker(session, wf, body, actor)
+
     cp_svc.resolve(session, wf, cp, row, actor.name)
     session.commit()
     cp_svc.log_decision(session, wf, row)
 
-    if wf.status in ("INGESTING", "VALIDATING"):
+    if wf.status in states.RUNNABLE:
         engine.launch(wf.id)
     return {"workflow_status": new_status, "applied": [body.decision]}

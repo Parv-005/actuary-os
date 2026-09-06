@@ -162,13 +162,15 @@ async def test_full_cp1_flow(db_session):
         assert roles["claims_2026_09_v2.csv"] == "primary"
         assert roles["claims_2026_09.csv"] == "superseded"
 
-        # second run: intake passes now; no more stages registered -> stays
+        # second run: intake passes; data_prep runs -> VALIDATING (no validation
+        # stage registered yet — lands there in Phase 8)
         await engine.run_workflow(wid)
         st2 = client.get(f"/workflows/{wid}/status").json()
-        assert st2["status"] == "INGESTING"
+        assert st2["status"] == "VALIDATING"
         assert not st2["pending_checkpoints"]
-        intake_runs = [s for s in st2["stage_statuses"] if s["stage"] == "intake"]
-        assert intake_runs and intake_runs[0]["state"] == "succeeded"
+        states = {s["stage"]: s["state"] for s in st2["stage_statuses"]}
+        assert states["intake"] == "succeeded"
+        assert states["data_prep"] == "succeeded"
 
 
 def wf_id(wid: str) -> uuid.UUID:

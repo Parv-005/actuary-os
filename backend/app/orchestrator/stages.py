@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from app.agents.base import StageResult
 from app.agents.context import WorkflowContext
+from app.agents.data_prep import run_data_prep
 from app.agents.intake import run_intake
 
 
@@ -28,6 +29,8 @@ class StageSpec:
 STAGE_ORDER: list[StageSpec] = [
     StageSpec(stage="intake", agent="intake", enters="INGESTING", on_pass=None,
               run=run_intake),
+    StageSpec(stage="data_prep", agent="data_prep", enters="INGESTING",
+              on_pass="VALIDATING", run=run_data_prep),
 ]
 
 STAGES: dict[str, StageSpec] = {s.stage: s for s in STAGE_ORDER}

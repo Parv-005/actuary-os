@@ -1,0 +1,42 @@
+{
+  "_comment": "Raw-column to canonical-column alias table (plan 5, sec 6.3). Fuzzy match threshold 0.85 auto-maps; below that -> unmapped (CP-3).",
+  "claims": {
+    "canonical": ["claim_id", "policy_id", "product", "segment", "region", "claim_type", "event_date", "report_date", "status", "incurred_amount"],
+    "aliases": {
+      "claim_id": ["claimid", "claim_no", "claim_number", "claim_ref", "claim reference"],
+      "policy_id": ["policyno", "policy_no", "policy_number", "policy"],
+      "product": ["product_name", "line_of_business", "lob", "bizclass", "business_class"],
+      "segment": ["segment_name", "sub_product", "business_segment", "uw_class", "underwriting_class"],
+      "region": ["region_name", "zone", "territory", "area"],
+      "claim_type": ["losstype", "loss_type", "cause", "peril", "cause_of_loss"],
+      "event_date": ["loss_date", "date_of_loss", "occurrence_date", "accident_date", "date_of_event"],
+      "report_date": ["reported_date", "notification_date", "date_reported", "reporting_date"],
+      "status": ["claim_status", "state", "claim_state"],
+      "incurred_amount": ["incurred", "claim_amount", "claim_amt", "claimamt", "total_incurred", "amount", "case_reserve_plus_paid"]
+    }
+  },
+  "premium": {
+    "canonical": ["policy_id", "product", "segment", "region", "period", "written_premium", "earned_premium"],
+    "aliases": {
+      "policy_id": ["policyno", "policy_no", "policy_number", "policy"],
+      "product": ["product_name", "line_of_business", "lob", "bizclass", "business_class"],
+      "segment": ["segment_name", "sub_product", "business_segment", "uw_class"],
+      "region": ["region_name", "zone", "territory", "area"],
+      "period": ["reporting_period", "month", "accident_month", "period_month"],
+      "written_premium": ["wp", "premium_written", "gross_written_premium", "gwp", "premium"],
+      "earned_premium": ["ep", "premium_earned", "gross_earned_premium", "gep", "earning_premium"]
+    }
+  },
+  "exposure": {
+    "canonical": ["policy_id", "product", "segment", "region", "period", "active_policies", "earned_exposure_units"],
+    "aliases": {
+      "policy_id": ["policyno", "policy_no", "policy_number", "policy"],
+      "product": ["product_name", "line_of_business", "lob", "bizclass", "business_class"],
+      "segment": ["segment_name", "sub_product", "business_segment", "uw_class"],
+      "region": ["region_name", "zone", "territory", "area"],
+      "period": ["reporting_period", "month", "accident_month", "period_month"],
+      "active_policies": ["policies", "in_force_policies", "policy_count", "active_count"],
+      "earned_exposure_units": ["exposure", "exposure_units", "earned_units", "car_years", "policy_years"]
+    }
+  }
+}
