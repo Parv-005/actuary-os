@@ -4,6 +4,7 @@ downstream gate checks, post-run human-gate parking."""
 from __future__ import annotations
 
 import asyncio
+import threading
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, text, update
@@ -40,6 +41,7 @@ _ARTIFACT_TABLES = (
 )
 
 _tasks: set[asyncio.Task] = set()
+_threads: set[threading.Thread] = set()  # background runs (ENGINE_BACKGROUND)
 
 
 def acquire_lease(session, wf: Workflow, ttl_s: int = LEASE_TTL_S) -> bool:
@@ -318,15 +320,38 @@ def _session():
 
 def launch(workflow_id) -> None:
     """Fire-and-forget background run (endpoints). Restart-safe: the resume
-    sweep re-launches on stale leases."""
+    sweep re-launches on stale leases. From a sync endpoint worker there is
+    no running loop — with ENGINE_BACKGROUND=1 the run executes in a daemon
+    thread (own event loop + own DB sessions; the lease guards concurrency).
+    Without the flag the launch is skipped (test hermeticity: tests drive
+    run_workflow directly)."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        json_log("launch_skipped", workflow_id=str(workflow_id), reason="no running loop")
+        loop = None
+    if loop is not None:
+        task = loop.create_task(run_workflow(workflow_id))
+        _tasks.add(task)
+        task.add_done_callback(_tasks.discard)
         return
-    task = loop.create_task(run_workflow(workflow_id))
-    _tasks.add(task)
-    task.add_done_callback(_tasks.discard)
+    if not settings.engine_background:
+        json_log("launch_skipped", workflow_id=str(workflow_id),
+                 reason="no running loop")
+        return
+
+    def _runner() -> None:
+        try:
+            asyncio.run(run_workflow(workflow_id))
+        except Exception as e:  # noqa: BLE001 — background must never crash
+            json_log("launch_thread_error", workflow_id=str(workflow_id),
+                     error=str(e)[:300])
+        finally:
+            _threads.discard(threading.current_thread())
+
+    t = threading.Thread(target=_runner, daemon=True,
+                         name=f"vortex-run-{workflow_id}")
+    _threads.add(t)
+    t.start()
 
 
 async def resume_stale_workflows() -> int:

@@ -33,7 +33,15 @@ def test_starts_bucket_applies_to_create():
     client = TestClient(_app({"uploads": (10, 60.0), "starts": (1, 60.0), "default": (60, 60.0)}))
     assert client.post("/workflows").status_code == 200
     assert client.post("/workflows").status_code == 429
-    assert client.get("/workflows").status_code == 200  # GET list uses default bucket
+    assert client.get("/workflows").status_code == 200  # GET list uses reads/default bucket
+
+
+def test_reads_bucket_for_polling():
+    # polled GETs must not consume the decision/write budget
+    client = TestClient(_app({"reads": (1, 60.0), "starts": (5, 60.0), "default": (60, 60.0)}))
+    assert client.get("/workflows").status_code == 200
+    assert client.get("/workflows").status_code == 429
+    assert client.post("/workflows").status_code == 200  # writes unaffected
 
 
 def test_429_shape():

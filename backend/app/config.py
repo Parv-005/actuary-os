@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
     rate_limit_enabled: bool = True
+    # [ID] run launched workflows in a daemon thread when endpoints have no
+    # running event loop (live server). OFF in tests so the suite stays
+    # hermetic (tests drive run_workflow directly); ON for dev/prod servers.
+    engine_background: bool = False
 
     # Thresholds (§6.4, §6.6, §13)
     recon_pass_pct: float = 0.5

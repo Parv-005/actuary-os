@@ -293,3 +293,43 @@ async def test_strict_gate_holds_reporting_for_cp4(db_session, monkeypatch):
     assert wf.status == "WAITING_FOR_HUMAN"  # held, then parked
     assert db_session.query(AgentRun).filter(
         AgentRun.stage == "reporting").count() == 0  # never started
+
+
+def test_launch_background_thread_runs_workflow(db_session, monkeypatch):
+    # regression: on a live server sync endpoints have no running event
+    # loop, so launch() silently skipped every run (workflows stranded
+    # after decisions). With ENGINE_BACKGROUND=1 the run executes in a
+    # daemon thread instead.
+    import time
+
+    from app.config import settings
+    from app.orchestrator import engine as engine_mod
+
+    monkeypatch.setattr(settings, "engine_background", True)
+    monkeypatch.setattr(engine_mod, "BACKOFF_S", [0.01, 0.01, 0.01])
+    wf = _wf(db_session, status="INGESTING")
+    engine_mod.launch(wf.id)  # sync context: no running loop here
+    deadline = time.monotonic() + 60.0
+    while time.monotonic() < deadline:
+        for t in list(engine_mod._threads):
+            t.join(timeout=1.0)
+        db_session.refresh(wf)
+        if wf.status == "BLOCKED":
+            break
+    assert wf.status == "BLOCKED"  # intake: zero files -> CP-1 red
+    assert db_session.query(HumanCheckpoint).filter(
+        HumanCheckpoint.workflow_id == wf.id,
+        HumanCheckpoint.checkpoint_type == "input_exception").count() == 1
+    assert not engine_mod._threads
+
+
+def test_launch_skipped_without_flag(db_session, monkeypatch):
+    from app.config import settings
+    from app.orchestrator import engine as engine_mod
+
+    monkeypatch.setattr(settings, "engine_background", False)
+    wf = _wf(db_session, status="INGESTING")
+    engine_mod.launch(wf.id)  # sync context, flag off: inert (tests hermetic)
+    assert not engine_mod._threads
+    db_session.refresh(wf)
+    assert wf.status == "INGESTING"

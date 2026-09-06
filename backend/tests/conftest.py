@@ -8,6 +8,9 @@ os.environ["APP_DB_SCHEMA"] = "test"
 os.environ.setdefault("LLM_PROVIDER", "fake")
 os.environ.setdefault("STORAGE_BACKEND", "memory")
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
+# background launch threads would race test-driven run_workflow calls;
+# live servers opt in via backend/.env (ENGINE_BACKGROUND=1)
+os.environ["ENGINE_BACKGROUND"] = "false"
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))

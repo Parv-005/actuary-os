@@ -12,6 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import seed  # noqa: E402
+from migrate import main as migrate_main  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
 from app.auth.actor import DEMO_EMAIL  # noqa: E402
@@ -59,6 +60,7 @@ def verify(api_url: str) -> None:
 
 
 def main(api_url: str = "http://localhost:8000", verify_health: bool = True) -> None:
+    migrate_main()  # schema + static seeds first (incl. 003 drift repair)
     cancel_non_seed_workflows()
     seed.main()
     if verify_health:

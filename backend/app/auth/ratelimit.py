@@ -10,6 +10,9 @@ from app.config import settings
 
 DEFAULT_LIMITS: dict[str, tuple[int, float]] = {
     "default": (60, 60.0),
+    # polled reads (§10: 2s status polling per open tab) get headroom;
+    # the LLM-cost-guard buckets below stay strict
+    "reads": (300, 60.0),
     "uploads": (10, 60.0),
     "starts": (5, 60.0),
 }
@@ -47,6 +50,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return "uploads"
         if path.endswith("/start") or (path.rstrip("/") == "/workflows" and method == "POST"):
             return "starts"
+        if method == "GET":
+            return "reads"
         return "default"
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint):
@@ -54,7 +59,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         ip = request.client.host if request.client else "?"
         name = self.bucket_name(request.url.path, request.method)
-        capacity, per_seconds = self.limits[name]
+        capacity, per_seconds = self.limits.get(name, self.limits["default"])
         bucket = self.buckets.setdefault((ip, name), _Bucket(capacity, per_seconds))
         if not bucket.take(capacity / per_seconds):
             return JSONResponse(
