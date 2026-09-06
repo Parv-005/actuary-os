@@ -1,10 +1,12 @@
 """Decisions router (§10/§12): the ONLY path out of BLOCKED/WAITING_FOR_HUMAN.
-Phase 7 covers CP-1 (input exception), CP-3 (schema mapping, yellow) and the
-data-prep validation blocker. Later phases extend the mapping."""
+Covers CP-1 (input exception), CP-3 (schema mapping, yellow), the data-prep
+validation blocker, and CP-2 (validation blocker). Later phases extend further."""
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.auth.actor import get_current_actor
@@ -75,13 +77,62 @@ def _apply_cp3(session: Session, wf: Workflow, body: DecisionRequest,
     return wf.status
 
 
+def _mark_blockers_accepted(session: Session, wf: Workflow, decision_id,
+                            rationale: str, actor: User) -> int:
+    """CP-2 accept: every BLOCKER validation check -> ACCEPTED_EXCEPTION."""
+    rows = session.execute(select(ValidationResult).where(
+        ValidationResult.workflow_id == wf.id,
+        ValidationResult.status == "BLOCKER")).scalars().all()
+    now = datetime.now(UTC)
+    for r in rows:
+        r.status = "ACCEPTED_EXCEPTION"
+        r.resolved_by = actor.id
+        r.resolved_at = now
+        r.resolution = {"decision_id": str(decision_id), "rationale": rationale,
+                        "decided_by": actor.name, "decided_at": now.isoformat()}
+    return len(rows)
+
+
+def _apply_cp2(session: Session, wf: Workflow, body: DecisionRequest,
+               actor: User, decision_id) -> str:
+    """CP-2 (§12): accept carries the exception into the report; re-run
+    re-executes validation only (datasets are kept — results upsert)."""
+    if body.decision == "accept_exception":
+        n = _mark_blockers_accepted(session, wf, decision_id,
+                                    body.rationale.strip(), actor)
+        cfg = dict(wf.config or {})
+        accepted = list(cfg.get("accepted_exceptions", []))
+        accepted.append({
+            "source": "validation", "decision_id": str(decision_id),
+            "note": body.rationale.strip(),
+        })
+        cfg["accepted_exceptions"] = accepted
+        wf.config = cfg
+        states.apply_transition(session, wf, states.VALIDATED, actor_type="human",
+                                actor=actor.name,
+                                reason=f"CP-2 accepted ({n} checks) — carried "
+                                       f"into report Exceptions")
+    elif body.decision == "request_rerun":
+        session.execute(delete(AgentRun).where(
+            AgentRun.workflow_id == wf.id, AgentRun.stage == "validation"))
+        states.apply_transition(session, wf, states.VALIDATING, actor_type="human",
+                                actor=actor.name, reason="CP-2: re-run validation")
+    else:  # reject_data
+        states.apply_transition(session, wf, states.REJECTED, actor_type="human",
+                                actor=actor.name, reason="CP-2: data rejected")
+    return wf.status
+
+
 def _apply_prep_blocker(session: Session, wf: Workflow, body: DecisionRequest,
-                        actor: User) -> str:
+                        actor: User, cp: HumanCheckpoint,
+                        decision_id) -> str:
+    if (cp.context or {}).get("stage") == "validation":
+        return _apply_cp2(session, wf, body, actor, decision_id)
     if body.decision == "accept_exception":
         cfg = dict(wf.config or {})
         accepted = list(cfg.get("accepted_exceptions", []))
         accepted.append({
-            "source": "data_prep", "decision_id": None,
+            "source": "data_prep", "decision_id": str(decision_id),
             "note": body.rationale or "accepted by actuary",
         })
         cfg["accepted_exceptions"] = accepted
@@ -163,7 +214,7 @@ def post_decision(
     elif cp_type == "schema_mapping":
         new_status = _apply_cp3(session, wf, body, actor)
     else:
-        new_status = _apply_prep_blocker(session, wf, body, actor)
+        new_status = _apply_prep_blocker(session, wf, body, actor, cp, row.id)
 
     cp_svc.resolve(session, wf, cp, row, actor.name)
     session.commit()

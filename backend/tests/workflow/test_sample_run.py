@@ -1,8 +1,9 @@
-"""Phase 7 acceptance: the real seeded sample data (§15) through the engine.
+"""Phase 7+8 acceptance: the real seeded sample data (§15) through the engine.
 
-Verifies the demo storyline numbers in transform_log: 12 exact dupes removed,
-15 regions auto-fixed, -2.1% premium is left to validation (Phase 8), CP-3
-not raised (all demo columns map), processed datasets produced.
+Verifies the demo storyline numbers in transform_log (12 exact dupes removed,
+15 regions auto-fixed) and the seeded -2.10% premium reconciliation blocker:
+CP-1 -> select v2 -> prep -> validation BLOCKED (CP-2) -> accept with
+rationale -> VALIDATED with the exception carried on the check row.
 """
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.main import app
-from app.models import DatasetVersion
+from app.models import DatasetVersion, ReferenceValue
 from app.orchestrator import engine
 from app.storage.supabase import get_storage
 
@@ -27,6 +28,16 @@ async def test_sample_data_through_intake_and_prep(db_session):
     for name in ("claims_2026_09.csv", "claims_2026_09_v2.csv",
                  "premium_2026_09.csv", "exposure_2026_09.csv"):
         await storage.upload_bytes(f"demo/{name}", (SAMPLE / name).read_bytes())
+    # system-of-record totals (migration 002 seeds; conftest truncates statics)
+    db_session.add_all([
+        ReferenceValue(period="2026-09", metric_key="recon_premium_total",
+                       dimensions={}, value=120_000_000,
+                       source="system_of_record"),
+        ReferenceValue(period="2026-09", metric_key="recon_claims_total",
+                       dimensions={}, value=80_000_000,
+                       source="system_of_record"),
+    ])
+    db_session.commit()
 
     with TestClient(app) as client:
         r = client.post("/workflows", json={"reporting_period": "2026-09", "demo": True})
@@ -45,11 +56,49 @@ async def test_sample_data_through_intake_and_prep(db_session):
             "payload": {"file_id": v2["payload"]["file_id"]}})
         assert r.status_code == 202
 
-        # run 2: intake passes -> data_prep runs -> VALIDATING
+        # run 2: intake passes -> data_prep runs -> validation BLOCKS on the
+        # seeded -2.10% premium reconciliation mismatch (CP-2 red)
         await engine.run_workflow(wid)
         st2 = client.get(f"/workflows/{wid}/status").json()
-        assert st2["status"] == "VALIDATING"
-        assert not st2["pending_checkpoints"]  # no CP-3: all demo columns map
+        assert st2["status"] == "BLOCKED"
+        cps = [c for c in st2["pending_checkpoints"]
+               if c["type"] == "validation_blocker"]
+        assert len(cps) == 1
+        assert {b["check_id"] for b in cps[0]["context"]["blockers"]} == {
+            "recon_premium"}
+        assert "likely_causes" in cps[0]["context"]
+
+        val = client.get(f"/workflows/{wid}/validation").json()["results"]
+        by_check = {r["check_id"]: r for r in val}
+        assert len(val) == 21
+        assert by_check["recon_premium"]["status"] == "BLOCKER"
+        assert by_check["recon_premium"]["details"]["diff_pct"] == pytest.approx(
+            -2.10, abs=0.01)
+        # claims recon only warns (-1.17%); outlier + small-sample warn too
+        assert by_check["recon_claims"]["status"] == "WARNING"
+        assert by_check["behav_outlier_claims"]["status"] == "WARNING"
+        assert "unusual but not proven invalid" in \
+            by_check["behav_outlier_claims"]["message"]
+        assert by_check["behav_small_sample"]["status"] == "WARNING"
+        assert "Marine Cargo" in by_check["behav_small_sample"]["message"]
+        assert by_check["cover_claims_events"]["status"] == "PASS"
+        assert by_check["record_key_collisions"]["status"] == "PASS"
+
+        # CP-2 accept with rationale -> VALIDATED, exception carried on the row
+        r = client.post(f"/workflows/{wid}/decisions", json={
+            "checkpoint_id": cps[0]["id"], "decision": "accept_exception",
+            "rationale": "Known endorsement processing lag — documented "
+                         "with the source team."})
+        assert r.status_code == 202
+        assert r.json()["workflow_status"] == "VALIDATED"
+        st3 = client.get(f"/workflows/{wid}/status").json()
+        assert st3["status"] == "VALIDATED"
+        assert not st3["pending_checkpoints"]
+        val2 = client.get(f"/workflows/{wid}/validation").json()["results"]
+        by_check2 = {r2["check_id"]: r2 for r2 in val2}
+        assert by_check2["recon_premium"]["status"] == "ACCEPTED_EXCEPTION"
+        assert by_check2["recon_premium"]["resolution"]["rationale"].startswith(
+            "Known endorsement")
 
         dvs = db_session.execute(
             select(DatasetVersion).where(DatasetVersion.workflow_id == wid)

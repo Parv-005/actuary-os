@@ -13,6 +13,7 @@ from app.agents.base import StageResult
 from app.agents.context import WorkflowContext
 from app.agents.data_prep import run_data_prep
 from app.agents.intake import run_intake
+from app.agents.validation import run_validation
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,8 @@ STAGE_ORDER: list[StageSpec] = [
               run=run_intake),
     StageSpec(stage="data_prep", agent="data_prep", enters="INGESTING",
               on_pass="VALIDATING", run=run_data_prep),
+    StageSpec(stage="validation", agent="validation", enters="VALIDATING",
+              on_pass="VALIDATED", run=run_validation),
 ]
 
 STAGES: dict[str, StageSpec] = {s.stage: s for s in STAGE_ORDER}

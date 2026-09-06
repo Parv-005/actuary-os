@@ -54,7 +54,10 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     QA: {WAITING_FOR_HUMAN, REPORTING, FAILED, CANCELLED},
     WAITING_FOR_HUMAN: {APPROVED, REPORTING, CANCELLED},
     APPROVED: {COMPLETED},
-    BLOCKED: {INGESTING, VALIDATING, REJECTED, CANCELLED},
+    # BLOCKED -> VALIDATED: CP-2 accept_exception — validation is complete,
+    # the exception is carried into the report (§10 decision map). BLOCKED ->
+    # VALIDATING covers re-runs (CP-2 request_rerun, prep-blocker recovery).
+    BLOCKED: {INGESTING, VALIDATING, VALIDATED, REJECTED, CANCELLED},
     RETRYING: {
         INGESTING, VALIDATING, ANALYZING, INVESTIGATING,
         REPORTING, QA, FAILED, CANCELLED,

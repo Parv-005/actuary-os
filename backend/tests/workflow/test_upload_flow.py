@@ -162,15 +162,21 @@ async def test_full_cp1_flow(db_session):
         assert roles["claims_2026_09_v2.csv"] == "primary"
         assert roles["claims_2026_09.csv"] == "superseded"
 
-        # second run: intake passes; data_prep runs -> VALIDATING (no validation
-        # stage registered yet — lands there in Phase 8)
+        # second run: intake passes; data_prep runs; validation runs on the
+        # tiny fixtures (no reference totals seeded -> recon "cannot verify"
+        # warnings, single-region concentration warning) -> VALIDATED
         await engine.run_workflow(wid)
         st2 = client.get(f"/workflows/{wid}/status").json()
-        assert st2["status"] == "VALIDATING"
+        assert st2["status"] == "VALIDATED"
         assert not st2["pending_checkpoints"]
         states = {s["stage"]: s["state"] for s in st2["stage_statuses"]}
         assert states["intake"] == "succeeded"
         assert states["data_prep"] == "succeeded"
+        assert states["validation"] == "succeeded"
+        val = client.get(f"/workflows/{wid}/validation").json()["results"]
+        by_id = {r["check_id"]: r for r in val}
+        assert by_id["recon_premium"]["status"] == "WARNING"
+        assert "cannot verify" in by_id["recon_premium"]["message"]
 
 
 def wf_id(wid: str) -> uuid.UUID:

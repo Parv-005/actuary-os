@@ -88,12 +88,17 @@ async def _run_stage(session, wf: Workflow, spec: StageSpec) -> None:
                 session.commit()
             return
         if result.status == "BLOCKER":
-            states.apply_transition(
-                session, wf, states.BLOCKED, actor_type="agent",
-                actor=f"{spec.agent}_agent",
-                reason=f"{spec.stage} raised a blocking checkpoint",
-            )
-            session.commit()
+            # Agents self-transition to BLOCKED when raising the checkpoint;
+            # the engine only transitions if the agent did not already do so
+            # (BLOCKED -> BLOCKED is illegal; previously crashed direct awaits
+            # while background tasks swallowed it as an un-retrieved exception).
+            if wf.status != states.BLOCKED:
+                states.apply_transition(
+                    session, wf, states.BLOCKED, actor_type="agent",
+                    actor=f"{spec.agent}_agent",
+                    reason=f"{spec.stage} raised a blocking checkpoint",
+                )
+                session.commit()
             return
         last_error = result.error or "unknown error"
         if attempt < MAX_ATTEMPTS:
