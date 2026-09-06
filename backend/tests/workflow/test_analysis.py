@@ -230,7 +230,13 @@ async def test_small_sample_flagged(db_session):
 
 
 @pytest.mark.asyncio
-async def test_analysis_api_end_to_end(db_session):
+async def test_analysis_api_end_to_end(db_session, monkeypatch):
+    # freeze the deterministic prefix: this flow stops at ANALYZED, before
+    # the LLM investigation stages (covered by the sample-run test)
+    monkeypatch.setattr(engine, "STAGE_ORDER",
+                        [s for s in engine.STAGE_ORDER
+                         if s.stage in ("intake", "data_prep", "validation",
+                                        "analysis")])
     _add_refs(db_session)
     db_session.add(ReferenceValue(period="2026-04",
                                   metric_key="historical_loss_ratio",

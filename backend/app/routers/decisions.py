@@ -1,6 +1,7 @@
 """Decisions router (§10/§12): the ONLY path out of BLOCKED/WAITING_FOR_HUMAN.
 Covers CP-1 (input exception), CP-3 (schema mapping, yellow), the data-prep
-validation blocker, and CP-2 (validation blocker). Later phases extend further."""
+validation blocker, CP-2 (validation blocker), and CP-4 (assumption
+variance). Later phases extend further (CP-5 finding decisions, CP-6/7)."""
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -14,6 +15,8 @@ from app.db import get_session
 from app.models import (
     AgentRun,
     DatasetVersion,
+    Evidence,
+    Finding,
     HumanCheckpoint,
     HumanDecision,
     Metric,
@@ -31,20 +34,62 @@ router = APIRouter(prefix="/workflows", tags=["decisions"])
 CP1_DECISIONS = {"select_file", "reject_data", "request_rerun"}
 CP3_DECISIONS = {"confirm_mapping", "ignore_column"}
 PREP_BLOCKER_DECISIONS = {"accept_exception", "request_rerun", "reject_data"}
+CP4_DECISIONS = {"no_change_required", "investigate_further",
+                 "review_assumption", "escalate"}
 
 RESTDANDARDIZE_ELIGIBLE = {states.INGESTING, states.VALIDATING, states.VALIDATED}
 
 
+def _apply_cp4(session: Session, wf: Workflow, body: DecisionRequest,
+               actor: User) -> str:
+    """CP-4 (§12): the actuary decides about the assumption variance — the
+    system records the decision, never a new assumption value."""
+    cfg = dict(wf.config or {})
+    if body.decision == "no_change_required":
+        states.apply_transition(session, wf, states.REPORTING, actor_type="human",
+                                actor=actor.name,
+                                reason="CP-4: no change required — monitor")
+    elif body.decision == "investigate_further":
+        rounds = int(cfg.get("investigation_rounds", 0))
+        if rounds >= 1:
+            raise HTTPException(409, "investigation already re-run once "
+                                     "(bounded 1x)", {"code": "bounded"})
+        cfg["investigation_rounds"] = rounds + 1
+        cfg["insight_focus"] = body.payload
+        wf.config = cfg
+        # fresh investigation round; the re-run replaces findings with links
+        session.execute(delete(AgentRun).where(
+            AgentRun.workflow_id == wf.id,
+            AgentRun.stage.in_(("insight", "knowledge"))))
+        states.apply_transition(session, wf, states.INVESTIGATING,
+                                actor_type="human", actor=actor.name,
+                                reason="CP-4: investigate further (bounded re-run)")
+    elif body.decision == "review_assumption":
+        cfg["assumption_review_requested"] = True
+        cfg["assumption_review_note"] = body.rationale.strip()
+        wf.config = cfg
+        states.apply_transition(session, wf, states.REPORTING, actor_type="human",
+                                actor=actor.name,
+                                reason="CP-4: assumption review requested")
+    else:  # escalate — stays parked, flagged
+        cfg["escalated"] = True
+        wf.config = cfg
+    return wf.status
+
+
 def _reset_for_restandardize(session: Session, wf: Workflow) -> None:
-    """confirm_mapping: drop prep/validation/analysis outputs so the engine
-    re-runs them (stale metrics must not survive: resume skips succeeded
-    stages)."""
-    for stage in ("data_prep", "validation", "analysis"):
+    """confirm_mapping: drop prep/validation/analysis/insight/knowledge outputs
+    so the engine re-runs them (stale metrics/findings must not survive:
+    resume skips succeeded stages)."""
+    for stage in ("data_prep", "validation", "analysis", "insight",
+                  "knowledge"):
         session.execute(delete(AgentRun).where(
             AgentRun.workflow_id == wf.id, AgentRun.stage == stage))
     session.execute(delete(DatasetVersion).where(DatasetVersion.workflow_id == wf.id))
     session.execute(delete(ValidationResult).where(ValidationResult.workflow_id == wf.id))
     session.execute(delete(Metric).where(Metric.workflow_id == wf.id))
+    session.execute(delete(Evidence).where(Evidence.workflow_id == wf.id))
+    session.execute(delete(Finding).where(Finding.workflow_id == wf.id))
     wf.stage = "data_prep"
     wf.error = None
     if wf.status != states.INGESTING:
@@ -196,6 +241,12 @@ def post_decision(
             raise HTTPException(400,
                                 f"decision '{body.decision}' not valid for validation_blocker",
                                 {"code": "bad_decision"})
+    elif cp_type == "assumption_variance":
+        if body.decision not in CP4_DECISIONS:
+            raise HTTPException(400,
+                                f"decision '{body.decision}' not valid for "
+                                "assumption_variance",
+                                {"code": "bad_decision"})
     else:
         raise HTTPException(400, f"checkpoint type '{cp_type}' not yet supported",
                             {"code": "not_implemented"})
@@ -217,6 +268,8 @@ def post_decision(
                                                body.payload, actor)
     elif cp_type == "schema_mapping":
         new_status = _apply_cp3(session, wf, body, actor)
+    elif cp_type == "assumption_variance":
+        new_status = _apply_cp4(session, wf, body, actor)
     else:
         new_status = _apply_prep_blocker(session, wf, body, actor, cp, row.id)
 

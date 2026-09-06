@@ -13,7 +13,9 @@ from app.agents.analysis import run_analysis
 from app.agents.base import StageResult
 from app.agents.context import WorkflowContext
 from app.agents.data_prep import run_data_prep
+from app.agents.insight import run_insight
 from app.agents.intake import run_intake
+from app.agents.knowledge import run_knowledge
 from app.agents.validation import run_validation
 
 
@@ -37,6 +39,10 @@ STAGE_ORDER: list[StageSpec] = [
               on_pass="VALIDATED", run=run_validation),
     StageSpec(stage="analysis", agent="analysis", enters="ANALYZING",
               on_pass="ANALYZED", run=run_analysis),
+    StageSpec(stage="insight", agent="insight", enters="INVESTIGATING",
+              on_pass=None, run=run_insight, timeout_s=180.0),
+    StageSpec(stage="knowledge", agent="knowledge", enters="INVESTIGATING",
+              on_pass="INSIGHTS_READY", run=run_knowledge, timeout_s=180.0),
 ]
 
 STAGES: dict[str, StageSpec] = {s.stage: s for s in STAGE_ORDER}

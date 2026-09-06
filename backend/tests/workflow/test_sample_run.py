@@ -12,14 +12,27 @@ from __future__ import annotations
 import hashlib
 import time
 import uuid
+from datetime import date
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+import app.agents.insight as insight_mod
+import app.agents.knowledge as knowledge_mod
+from app.llm.client import FakeLLMClient
 from app.main import app
-from app.models import DatasetVersion, ReferenceValue, User, Workflow
+from app.models import (
+    AgentRun,
+    DatasetVersion,
+    Finding,
+    KnowledgeDocument,
+    Metric,
+    ReferenceValue,
+    User,
+    Workflow,
+)
 from app.orchestrator import engine
 from app.storage.supabase import get_storage
 
@@ -41,14 +54,14 @@ async def _wait_for_status(client: TestClient, wid: str, want: str,
 
 
 @pytest.mark.asyncio
-async def test_sample_data_through_intake_and_prep(db_session):
+async def test_sample_data_through_intake_and_prep(db_session, monkeypatch):
     # seed the shared Storage singleton demo/ exactly like scripts/seed.py
     storage = get_storage()
     for name in ("claims_2026_09.csv", "claims_2026_09_v2.csv",
                  "premium_2026_09.csv", "exposure_2026_09.csv"):
         await storage.upload_bytes(f"demo/{name}", (SAMPLE / name).read_bytes())
-    # system-of-record totals + expected LR + history series
-    # (migration 002 seeds; conftest truncates statics)
+    # system-of-record totals + expected LR + severity-trend assumption +
+    # history series (migration 002 seeds; conftest truncates statics)
     db_session.add_all([
         ReferenceValue(period="2026-09", metric_key="recon_premium_total",
                        dimensions={}, value=120_000_000,
@@ -58,9 +71,43 @@ async def test_sample_data_through_intake_and_prep(db_session):
                        source="system_of_record"),
         ReferenceValue(period="2026-09", metric_key="expected_loss_ratio",
                        dimensions={}, value=0.628, source="methodology"),
+        ReferenceValue(period="2026-09", metric_key="expected_severity_trend",
+                       dimensions={"product": "Commercial",
+                                   "segment": "Construction"},
+                       value=0.050, source="methodology"),
     ] + [ReferenceValue(period=p, metric_key="historical_loss_ratio",
                         dimensions={}, value=v, source="system_of_record")
          for p, v in HISTORY_LR])
+    # knowledge base (mirrors migration 002 + seed.py)
+    v30 = KnowledgeDocument(
+        title="Reserve Methodology", doc_type="methodology", version="v3.0",
+        effective_date=date(2025, 1, 15),
+        content_text="Reserve methodology v3.0. Expected severity trend for "
+                     "Commercial Construction: +4.0% YoY. Superseded by v3.1.",
+        tags=["methodology", "reserving", "construction"])
+    v31 = KnowledgeDocument(
+        title="Reserve Methodology", doc_type="methodology", version="v3.1",
+        effective_date=date(2026, 4, 1),
+        content_text="Reserve methodology v3.1 (current). Expected severity "
+                     "trend for Commercial Construction: +5.0% YoY. "
+                     "Assumption variance gate: observed vs configured >= 5pp "
+                     "requires actuary review. AI does not recommend "
+                     "assumption changes.",
+        tags=["methodology", "reserving", "construction", "assumptions"])
+    db_session.add_all([v30, v31])
+    db_session.flush()
+    v30.superseded_by = v31.id
+    db_session.add(KnowledgeDocument(
+        title="Monthly Review 2026-08", doc_type="prior_report",
+        version="1.0", effective_date=date(2026, 8, 31),
+        content_text="Monthly Portfolio Review — August 2026 (Meridian "
+                     "General Insurance). Portfolio loss ratio 63.1% vs "
+                     "expected 62.8% (+0.3pp). Commercial Construction "
+                     "(South) severity rising faster than the +5.0% "
+                     "methodology trend. Decision: monitor construction "
+                     "severity next periods (recorded by Demo Actuary). "
+                     "No assumption change.",
+        tags=["prior_report", "construction", "monitoring"]))
     # seeded August prior workflow with history datasets (mirrors seed.py):
     # the source of prev_value + contribution weights
     actor = User(email=f"{uuid.uuid4().hex[:8]}@t.app", name="T",
@@ -84,11 +131,89 @@ async def test_sample_data_through_intake_and_prep(db_session):
             storage_path=path, row_count=0, column_map={},
             transform_log={"seeded": True},
             checksum=hashlib.sha256(data).hexdigest()))
+    # seeded August monitoring finding for the knowledge prior-link
+    aug_finding = Finding(
+        workflow_id=prior.id, agent="insight", agent_version="seed-v1",
+        model="scripted",
+        title="Construction severity trending up — monitor into September",
+        narrative="Evidence: Construction (South) severity rising faster "
+                  "than trend.\nConclusion: watch item for September.",
+        severity="medium", confidence=0.65, status="monitoring")
+    db_session.add(aug_finding)
     db_session.commit()
 
     with TestClient(app) as client:
         r = client.post("/workflows", json={"reporting_period": "2026-09", "demo": True})
         wid = r.json()["id"]
+
+        # Patch LLM factories BEFORE any engine activity can reach
+        # investigation: the CP-2 accept below launches a background task
+        # that may run insight+knowledge on its own thread. Scripts are
+        # built at call time (metrics are committed by then); tool calls
+        # execute genuinely against the real metrics in every racer.
+        cs_dims = {"product": "Commercial", "segment": "Construction",
+                   "region": "South"}
+
+        def _insight_factory():
+            rows = db_session.execute(
+                select(Metric).where(
+                    Metric.workflow_id == uuid.UUID(wid))).scalars().all()
+            by_key = {(m.metric_key,
+                       tuple(sorted((m.dimensions or {}).items()))): str(m.id)
+                      for m in rows}
+            cs_t = tuple(sorted(cs_dims.items()))
+            script = [
+                {"tool_calls": [{"name": "portfolio_summary", "args": {}}]},
+                {"tool_calls": [{"name": "top_contributors",
+                                 "args": {"limit": 3}}]},
+                {"tool_calls": [{"name": "severity_vs_frequency",
+                                 "args": dict(cs_dims)}]},
+                {"json": {
+                    "finding": "Commercial Construction (South) is the "
+                               "largest contributor to portfolio deterioration",
+                    "severity": "high", "confidence": 0.9,
+                    "evidence_ids": [
+                        by_key[("loss_ratio", ())], by_key[("loss_ratio", cs_t)],
+                        by_key[("claim_severity", cs_t)],
+                        by_key[("claim_frequency", cs_t)],
+                        by_key[("deterioration_contribution", cs_t)]],
+                    "narrative": {
+                        "evidence": "Segment LR 62.9%->78.1% (+15.2pp); "
+                                    "portfolio 63.1%->67.3%; severity +13.1% "
+                                    "vs frequency +2.4%; 60.8% of movement.",
+                        "hypothesis": "Severity-driven deterioration "
+                                      "coincides with large-claim activity "
+                                      "in Construction South.",
+                        "conclusion": "Largest contributor; concentrated in "
+                                      "South region."},
+                    "possible_drivers": ["large claims in Construction South",
+                                         "regional concentration in South"],
+                    "alternatives": ["large-loss volatility",
+                                     "reporting delay"],
+                    "correlation_caveat": "Coincides with severe weather "
+                                          "period; causation not established.",
+                    "human_review_required": False,
+                    "decision_question": "Does this warrant assumption "
+                                         "review, pricing review, or "
+                                         "continued monitoring?",
+                }},
+            ]
+            return FakeLLMClient(script=script)
+
+        knowledge_script = [{"json": {
+            "summary": "August set a monitor on construction severity; "
+                       "methodology v3.1 holds the +5.0% trend.",
+            "citations": [
+                {"title": "Monthly Review 2026-08", "version": "1.0",
+                 "effective_date": "2026-08-31"},
+                {"title": "Reserve Methodology", "version": "v3.1",
+                 "effective_date": "2026-04-01"}],
+            "no_relevant_document": False,
+        }}]
+        monkeypatch.setattr(insight_mod, "get_llm_client", _insight_factory)
+        monkeypatch.setattr(knowledge_mod, "get_llm_client",
+                            lambda: FakeLLMClient(script=list(knowledge_script)))
+
         # run 1: intake -> CP-1 (stale v1 + v2)
         st = await _wait_for_status(client, wid, "BLOCKED")
         cps = st["pending_checkpoints"]
@@ -154,11 +279,14 @@ async def test_sample_data_through_intake_and_prep(db_session):
         assert by_kind["exposure"].row_count == 6000
         assert by_kind["claims"].row_count == 280
 
-        # run 3: analysis -> ANALYZED, full §15 storyline in metrics
-        st3 = await _wait_for_status(client, wid, "ANALYZED")
-        assert not st3["pending_checkpoints"]
-        states = {s["stage"]: s["state"] for s in st3["stage_statuses"]}
-        assert states["analysis"] == "succeeded"
+        # run 3+4: analysis -> investigation (insight + knowledge run with
+        # the scripted factories above, whichever racer holds the lease) ->
+        # CP-4 parks the workflow for the actuary
+        st4 = await _wait_for_status(client, wid, "WAITING_FOR_HUMAN")
+        states4 = {s["stage"]: s["state"] for s in st4["stage_statuses"]}
+        assert states4["analysis"] == "succeeded"
+        assert states4["insight"] == "succeeded"
+        assert states4["knowledge"] == "succeeded"
 
         body = client.get(f"/workflows/{wid}/metrics").json()
         assert body["undefined"] == []
@@ -208,3 +336,80 @@ async def test_sample_data_through_intake_and_prep(db_session):
         assert series["series"][-1]["value"] == pytest.approx(
             0.673, abs=0.001)
         assert series["series"][-1]["source"] == "computed"
+
+        # investigation ran with the scripted factories (tool calls genuine)
+        st4 = await _wait_for_status(client, wid, "WAITING_FOR_HUMAN")
+
+        # the §15 storyline finding, evidence-backed by real metric ids
+        flist = client.get(f"/workflows/{wid}/findings").json()["findings"]
+        assert len(flist) == 1
+        assert flist[0]["severity"] == "high"
+        assert flist[0]["confidence"] == pytest.approx(0.9)
+        assert flist[0]["evidence_count"] == 8  # 5 metric + 3 knowledge
+        assert flist[0]["human_review_required"] is False
+        assert "Construction" in flist[0]["title"] and "South" in flist[0]["title"]
+        fid = flist[0]["id"]
+
+        detail = client.get(f"/workflows/{wid}/findings/{fid}").json()
+        assert detail["finding"]["decision_question"].startswith(
+            "Does this warrant")
+        assert set(detail["finding"]["alternatives"]) == {
+            "large-loss volatility", "reporting delay"}
+        assert "causation not established" in \
+            detail["finding"]["correlation_caveat"]
+        metric_ev = [e for e in detail["evidence"] if e["type"] == "metric"]
+        assert len(metric_ev) == 5
+        chain = next(e["chain"] for e in metric_ev
+                     if e["chain"]["metric"]["metric_key"] == "loss_ratio"
+                     and e["chain"]["metric"]["dimensions"].get("region") == "South")
+        assert chain["metric"]["value"] == pytest.approx(0.781, abs=0.001)
+        assert chain["metric"]["formula"].startswith("loss_ratio =")
+        assert chain["datasets"] and chain["files"]
+        assert any("claims_2026_09_v2.csv" in f["filename"]
+                   for f in chain["files"])
+        know_ev = [e for e in detail["evidence"] if e["type"] == "knowledge"]
+        assert any(e["document"]["title"] == "Monthly Review 2026-08"
+                   for e in know_ev)
+        assert any("repeat monitoring item" in e["description"]
+                   for e in know_ev)
+        assert any(p["title"].startswith("Construction severity trending")
+                   for p in detail["prior_findings"])
+        frow = db_session.execute(
+            select(Finding).where(Finding.workflow_id == uuid.UUID(wid))
+        ).scalars().all()
+        assert len(frow) == 1 and str(aug_finding.id) in (frow[0].links or [])
+
+        # CP-4 assumption alert: +13.1% observed vs +5.0% configured
+        cp4 = next(c for c in st4["pending_checkpoints"]
+                   if c["type"] == "assumption_variance")
+        assert cp4["severity"] == "red" and cp4["blocking"] is True
+        var = cp4["context"]["variances"][0]
+        assert var["observed_delta_pct"] == pytest.approx(13.1, abs=0.05)
+        assert var["expected_trend_pct"] == pytest.approx(5.0)
+        assert var["variance_pp"] == pytest.approx(8.1, abs=0.05)
+        assert cp4["context"]["methodology"]["version"] == "v3.1"
+        assert "does NOT recommend an assumption change" in \
+            cp4["context"]["disclaimer"]
+        assert {o["decision"] for o in cp4["options"]} == {
+            "no_change_required", "investigate_further", "review_assumption",
+            "escalate"}
+
+        # LLM usage accounted on the agent runs
+        runs = {r.stage: r for r in db_session.execute(
+            select(AgentRun).where(
+                AgentRun.workflow_id == uuid.UUID(wid),
+                AgentRun.stage.in_(("insight", "knowledge")))
+        ).scalars().all()}
+        assert runs["insight"].llm_calls >= 4  # 3 tool rounds + final
+        assert runs["insight"].prompt_hash
+        assert runs["knowledge"].llm_calls >= 1
+
+        # CP-4 decision: record "No change required — monitor", continue
+        r = client.post(f"/workflows/{wid}/decisions", json={
+            "checkpoint_id": cp4["id"], "decision": "no_change_required",
+            "rationale": "", "payload": {"comment": "Monitor one more period."}})
+        assert r.status_code == 202
+        assert r.json()["workflow_status"] == "REPORTING"
+        st5 = client.get(f"/workflows/{wid}/status").json()
+        assert st5["status"] == "REPORTING"
+        assert not st5["pending_checkpoints"]

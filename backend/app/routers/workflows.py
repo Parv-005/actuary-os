@@ -314,6 +314,7 @@ def _resume_if_stale(session: Session, wf: Workflow) -> None:
     lease_free = wf.locked_until is None or wf.locked_until < now
     stale = (now - (wf.updated_at or wf.created_at)).total_seconds() > 90
     if lease_free and stale:
+        wf.resume_count = (wf.resume_count or 0) + 1
         record_event(session, workflow_id=wf.id, actor_type="system", actor="orchestrator",
                      action="resume_sweep_pickup", summary="status poll triggered resume")
         session.commit()

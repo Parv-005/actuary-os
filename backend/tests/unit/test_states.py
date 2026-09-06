@@ -9,6 +9,7 @@ from app.orchestrator.states import (
     BLOCKED,
     COMPLETED,
     REJECTED,
+    RUNNABLE,
     IllegalTransition,
     apply_transition,
     can_transition,
@@ -59,3 +60,25 @@ def test_blocked_paths():
     assert not can_transition("ANALYZING", BLOCKED)
     assert can_transition(BLOCKED, "INGESTING")
     assert can_transition(BLOCKED, REJECTED)
+
+
+def test_runnable_covers_every_stage_resting_state():
+    # regression (Phase 9 bug): run_workflow returned immediately for
+    # workflows resting between stages, silently stranding them
+    for state in ("INGESTING", "VALIDATING", "VALIDATED", "ANALYZING",
+                  "ANALYZED", "INVESTIGATING", "INSIGHTS_READY",
+                  "REPORTING", "QA", "RETRYING"):
+        assert state in RUNNABLE, state
+    for state in ("BLOCKED", "WAITING_FOR_HUMAN", "FAILED", "COMPLETED",
+                  "REJECTED", "CANCELLED", "CREATED", "INPUT_WAIT",
+                  "APPROVED"):
+        assert state not in RUNNABLE, state
+
+
+def test_investigation_path_edges():
+    assert can_transition("ANALYZED", "INVESTIGATING")
+    assert can_transition("INVESTIGATING", "INSIGHTS_READY")
+    assert can_transition("INSIGHTS_READY", "WAITING_FOR_HUMAN")
+    assert can_transition("WAITING_FOR_HUMAN", "REPORTING")
+    assert can_transition("RETRYING", "INVESTIGATING")
+    assert can_transition("RETRYING", "ANALYZING")

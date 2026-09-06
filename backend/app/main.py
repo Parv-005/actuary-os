@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.ratelimit import RateLimitMiddleware
 from app.config import settings
-from app.routers import decisions, health, metrics, validation, workflows
+from app.routers import decisions, findings, health, metrics, validation, workflows
 from app.utils.logging import json_log
 
 
@@ -17,9 +17,8 @@ async def lifespan(app: FastAPI):
     try:
         from app.orchestrator.engine import resume_stale_workflows
 
-        await resume_stale_workflows()
-    except ImportError:
-        json_log("resume_sweep", detail="orchestrator not wired yet (Phase 10)")
+        n = await resume_stale_workflows()
+        json_log("resume_sweep", picked_up=n)
     except Exception as e:  # never block startup on sweep failure
         json_log("resume_sweep_error", error=str(e)[:300])
     yield
@@ -40,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(workflows.router)
     app.include_router(validation.router)
     app.include_router(metrics.router)
+    app.include_router(findings.router)
     app.include_router(decisions.router)
     return app
 

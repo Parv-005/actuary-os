@@ -140,8 +140,14 @@ def test_upload_rejects_bad_sniff_and_size():
 
 
 @pytest.mark.asyncio
-async def test_full_cp1_flow(db_session):
+async def test_full_cp1_flow(db_session, monkeypatch):
     """Upload 4 files (two claims) -> engine -> CP-1 BLOCKED -> select v2 -> resume."""
+    # freeze the deterministic prefix: this flow stops at ANALYZED, before
+    # the LLM investigation stages (covered by the sample-run test)
+    monkeypatch.setattr(engine, "STAGE_ORDER",
+                        [s for s in engine.STAGE_ORDER
+                         if s.stage in ("intake", "data_prep", "validation",
+                                        "analysis")])
     with _client() as client:
         wf = _mk_workflow(client)
         wid = wf["id"]
