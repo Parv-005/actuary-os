@@ -5,7 +5,9 @@ engine.run_workflow for determinism.
 """
 from __future__ import annotations
 
+import asyncio
 import io
+import time
 import uuid
 
 import pytest
@@ -38,6 +40,22 @@ def _csv(name: str, content: str) -> tuple[str, bytes]:
 
 def _client():
     return TestClient(app)
+
+
+async def _wait_for_status(client: TestClient, wid: str, want: str,
+                           timeout_s: float = 120.0) -> dict:
+    """Drive the engine until the status poll shows `want` (the decisions/
+    upload-triggered background task races direct awaits — two loops, one
+    DB lease — but both converge to the same final state)."""
+    deadline = time.monotonic() + timeout_s
+    last: dict | None = None
+    while time.monotonic() < deadline:
+        await engine.run_workflow(wid)
+        last = client.get(f"/workflows/{wid}/status").json()
+        if last["status"] == want:
+            return last
+        await asyncio.sleep(0.5)
+    raise AssertionError(f"timed out waiting for {want}, last={last}")
 
 
 def _mk_workflow(client: TestClient) -> dict:
@@ -162,21 +180,22 @@ async def test_full_cp1_flow(db_session):
         assert roles["claims_2026_09_v2.csv"] == "primary"
         assert roles["claims_2026_09.csv"] == "superseded"
 
-        # second run: intake passes; data_prep runs; validation runs on the
-        # tiny fixtures (no reference totals seeded -> recon "cannot verify"
-        # warnings, single-region concentration warning) -> VALIDATED
-        await engine.run_workflow(wid)
-        st2 = client.get(f"/workflows/{wid}/status").json()
-        assert st2["status"] == "VALIDATED"
+        # second run: intake passes; data_prep + validation run (no reference
+        # totals seeded -> recon "cannot verify" warnings only) and analysis
+        # runs -> ANALYZED (ave/contribution unavailable without baselines)
+        st2 = await _wait_for_status(client, wid, "ANALYZED")
         assert not st2["pending_checkpoints"]
         states = {s["stage"]: s["state"] for s in st2["stage_statuses"]}
         assert states["intake"] == "succeeded"
         assert states["data_prep"] == "succeeded"
         assert states["validation"] == "succeeded"
-        val = client.get(f"/workflows/{wid}/validation").json()["results"]
-        by_id = {r["check_id"]: r for r in val}
-        assert by_id["recon_premium"]["status"] == "WARNING"
-        assert "cannot verify" in by_id["recon_premium"]["message"]
+        assert states["analysis"] == "succeeded"
+        metrics = client.get(f"/workflows/{wid}/metrics").json()
+        port = next(m for m in metrics["metrics"]
+                    if m["metric_key"] == "loss_ratio" and m["dimensions"] == {})
+        assert port["value"] == pytest.approx(20210 / 2000)
+        assert {u["metric_key"] for u in metrics["undefined"]} == {
+            "ave_variance", "deterioration_contribution"}
 
 
 def wf_id(wid: str) -> uuid.UUID:

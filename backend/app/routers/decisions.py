@@ -16,6 +16,7 @@ from app.models import (
     DatasetVersion,
     HumanCheckpoint,
     HumanDecision,
+    Metric,
     User,
     ValidationResult,
     Workflow,
@@ -35,12 +36,15 @@ RESTDANDARDIZE_ELIGIBLE = {states.INGESTING, states.VALIDATING, states.VALIDATED
 
 
 def _reset_for_restandardize(session: Session, wf: Workflow) -> None:
-    """confirm_mapping: drop prep/validation outputs so the engine re-runs them."""
-    for stage in ("data_prep", "validation"):
+    """confirm_mapping: drop prep/validation/analysis outputs so the engine
+    re-runs them (stale metrics must not survive: resume skips succeeded
+    stages)."""
+    for stage in ("data_prep", "validation", "analysis"):
         session.execute(delete(AgentRun).where(
             AgentRun.workflow_id == wf.id, AgentRun.stage == stage))
     session.execute(delete(DatasetVersion).where(DatasetVersion.workflow_id == wf.id))
     session.execute(delete(ValidationResult).where(ValidationResult.workflow_id == wf.id))
+    session.execute(delete(Metric).where(Metric.workflow_id == wf.id))
     wf.stage = "data_prep"
     wf.error = None
     if wf.status != states.INGESTING:

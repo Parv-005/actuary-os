@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+from app.agents.analysis import run_analysis
 from app.agents.base import StageResult
 from app.agents.context import WorkflowContext
 from app.agents.data_prep import run_data_prep
@@ -34,6 +35,8 @@ STAGE_ORDER: list[StageSpec] = [
               on_pass="VALIDATING", run=run_data_prep),
     StageSpec(stage="validation", agent="validation", enters="VALIDATING",
               on_pass="VALIDATED", run=run_validation),
+    StageSpec(stage="analysis", agent="analysis", enters="ANALYZING",
+              on_pass="ANALYZED", run=run_analysis),
 ]
 
 STAGES: dict[str, StageSpec] = {s.stage: s for s in STAGE_ORDER}

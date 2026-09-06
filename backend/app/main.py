@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.ratelimit import RateLimitMiddleware
 from app.config import settings
-from app.routers import decisions, health, validation, workflows
+from app.routers import decisions, health, metrics, validation, workflows
 from app.utils.logging import json_log
 
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(workflows.router)
     app.include_router(validation.router)
+    app.include_router(metrics.router)
     app.include_router(decisions.router)
     return app
 

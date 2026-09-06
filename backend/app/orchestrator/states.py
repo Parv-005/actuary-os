@@ -33,8 +33,12 @@ CANCELLED = "CANCELLED"
 
 TERMINAL = {COMPLETED, REJECTED, CANCELLED}
 PAUSED = {BLOCKED, WAITING_FOR_HUMAN, FAILED}
+# RUNNABLE: every non-terminal state the engine may advance FROM, including
+# the "resting" states between stages (VALIDATED -> ANALYZING, ANALYZED ->
+# INVESTIGATING). Missing VALIDATED here silently stranded post-validation
+# workflows (run_workflow returned immediately) — caught by Phase 9.
 RUNNABLE = {
-    INGESTING, VALIDATING, ANALYZING, INVESTIGATING,
+    INGESTING, VALIDATING, VALIDATED, ANALYZING, ANALYZED, INVESTIGATING,
     INSIGHTS_READY, REPORTING, QA, RETRYING,
 }
 
