@@ -33,14 +33,39 @@ export default function Dashboard() {
   const [healthy, setHealthy] = useState<boolean | null>(null);
 
   useEffect(() => {
-    api
-      .health()
-      .then(() => setHealthy(true))
-      .catch(() => setHealthy(false));
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    // Any successful API response proves the backend is awake — and keep
+    // re-checking until healthy so a cold-start failure doesn't stick.
+    const check = () =>
+      api
+        .health()
+        .then(() => {
+          if (!cancelled) {
+            setHealthy(true);
+            if (timer) clearInterval(timer);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setHealthy(false);
+        });
+    void check();
+    timer = setInterval(check, 10000);
     api
       .listWorkflows()
-      .then((b) => setWorkflows(b.workflows))
-      .catch((e: Error) => setError(e.message));
+      .then((b) => {
+        if (cancelled) return;
+        setWorkflows(b.workflows);
+        setHealthy(true);
+        if (timer) clearInterval(timer);
+      })
+      .catch((e: Error) => {
+        if (!cancelled) setError(e.message);
+      });
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
   }, []);
 
   async function launchDemo() {
