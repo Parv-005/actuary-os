@@ -195,11 +195,19 @@ export const api = {
       body: form,
     });
     if (!res.ok) {
-      const err = new Error(`upload failed: ${res.status}`) as ApiError;
+      const body = await res.json().catch(() => ({}));
+      const detail =
+        (body as { detail?: string }).detail ?? `upload failed: ${res.status}`;
+      const err = new Error(detail) as ApiError;
       err.status = res.status;
+      err.code = (body as { code?: string }).code;
       throw err;
     }
-    return (await res.json()) as { files: unknown[]; status: string };
+    return (await res.json()) as {
+      files: unknown[];
+      status: string;
+      auto_started: boolean;
+    };
   },
   startWorkflow: (id: string) =>
     post<{ status: string }>(`/workflows/${id}/start`),

@@ -23,8 +23,23 @@ export default function NewWorkflowPage() {
         portfolio: "General Insurance",
       });
       if (files.length) {
-        await api.uploadFiles(w.id, files);
-        await api.startWorkflow(w.id);
+        const up = await api.uploadFiles(w.id, files);
+        // Upload auto-starts the workflow once claims+premium+exposure are
+        // present (backend returns auto_started + status INGESTING). Only
+        // manual-start when still waiting for input, otherwise the extra
+        // start 409s with "cannot start from state INGESTING".
+        if (!up.auto_started && up.status === "INPUT_WAIT") {
+          try {
+            await api.startWorkflow(w.id);
+          } catch (e) {
+            // Auto-start raced us between upload and start — already running,
+            // so proceed to the detail page instead of surfacing a 409.
+            const msg = e instanceof Error ? e.message : "";
+            const status = (e as { status?: number }).status;
+            if (status !== 409 || !msg.includes("cannot start from state"))
+              throw e;
+          }
+        }
       }
       router.push(`/workflows/${w.id}`);
     } catch (e) {
