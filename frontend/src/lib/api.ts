@@ -86,6 +86,7 @@ export interface ValidationResult {
   status: string;
   message: string;
   details: Record<string, unknown>;
+  affected_row_count?: number;
   resolution?: Record<string, unknown> | null;
 }
 
@@ -131,6 +132,7 @@ export interface EvidenceItem {
   snapshot: Record<string, unknown>;
   chain?: EvidenceChain;
   document?: { title: string; version: string; doc_type: string } | null;
+  created_at?: string | null;
 }
 
 export interface FindingDetail extends FindingSummary {

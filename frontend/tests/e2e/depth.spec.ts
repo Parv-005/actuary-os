@@ -18,10 +18,10 @@ test("completed workflow shows findings, report and audit", async ({ page }) => 
   await firstFinding.click();
   await expect(page).toHaveURL(/\/findings\/[0-9a-f-]+/);
   await expect(page.getByText("Evidence chain")).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("Calculation:").first()).toBeVisible();
+  await expect(page.getByText("Calculation").first()).toBeVisible();
   // seeded Aug evidence links the metric + formula snapshot (scripted seed
   // carries no dataset versions — live runs link through to file downloads)
-  await expect(page.getByText("Metric:").first()).toBeVisible();
+  await expect(page.getByText("Frozen input snapshot").first()).toBeVisible();
 
   // report tab: approved + QA evidence
   await page.goto(page.url().split("/findings/")[0]);

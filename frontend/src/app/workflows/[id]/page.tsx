@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Card, Spinner } from "@/components/ui/primitives";
+import { Button, Card, LivePill, SkeletonCard } from "@/components/ui/primitives";
 import { AgentRunTable, AuditTimeline } from "@/components/workflow/AuditViews";
+import { AgentActivity } from "@/components/workflow/AgentActivity";
 import { ChartsPanel } from "@/components/workflow/ChartsPanel";
 import { CheckpointBanner } from "@/components/workflow/CheckpointPanel";
 import { DemoGuide } from "@/components/workflow/DemoGuide";
@@ -41,14 +42,31 @@ function RetryCard({ workflowId, error }: { workflowId: string; error: unknown }
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   return (
-    <Card className="border-red-300 bg-red-50 p-4 text-sm">
-      <div className="font-medium text-red-800">Workflow failed</div>
-      <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-xs text-red-700">
+    <Card className="animate-banner-in border-l-4 border-l-red-500 p-4 text-sm sm:p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-red-100 text-base font-black text-red-700">
+          ✕
+        </span>
+        <div>
+          <div className="text-[15px] font-black tracking-tight text-slate-900">
+            Workflow failed — nothing is lost
+          </div>
+          <p className="text-xs text-slate-500">
+            State is checkpointed; retry resumes from the failed stage only.
+          </p>
+        </div>
+      </div>
+      <pre className="nice-scroll mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-xl bg-ink-950 p-3 font-mono text-[11px] leading-relaxed text-red-200">
         {JSON.stringify(error ?? "unknown error", null, 2)}
       </pre>
-      {msg && <p className="mt-1 text-red-700">{msg}</p>}
+      {msg && (
+        <p className="mt-2 text-sm font-medium text-red-700" role="alert">
+          {msg}
+        </p>
+      )}
       <div className="mt-3">
         <Button
+          variant="danger"
           onClick={async () => {
             setBusy(true);
             try {
@@ -61,7 +79,7 @@ function RetryCard({ workflowId, error }: { workflowId: string; error: unknown }
           }}
           disabled={busy}
         >
-          {busy ? "Retrying…" : "Retry from failed stage"}
+          {busy ? "Retrying…" : "↻ Retry from failed stage"}
         </Button>
       </div>
     </Card>
@@ -73,11 +91,26 @@ function InputsCard({ workflowId, onStarted }: { workflowId: string; onStarted: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
-    <Card className="space-y-3 p-4">
-      <h3 className="font-medium">Inputs</h3>
+    <Card className="space-y-4 p-4 sm:p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-base font-black text-blue-700">
+          ⭳
+        </span>
+        <div>
+          <h3 className="text-[15px] font-black tracking-tight text-slate-900">
+            Inputs needed
+          </h3>
+          <p className="text-xs text-slate-500">
+            Attach CSVs, then start — intake classifies and fires checkpoints.
+          </p>
+        </div>
+      </div>
       <UploadZone onFiles={setFiles} disabled={busy} />
       {error && (
-        <p className="text-sm text-red-700" role="alert">
+        <p
+          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 ring-1 ring-inset ring-red-200"
+          role="alert"
+        >
           {error}
         </p>
       )}
@@ -214,12 +247,20 @@ export default function WorkflowDetailPage({
   }, [restart, loadSecondary]);
 
   return (
-    <main className="mx-auto max-w-5xl space-y-4 p-8">
-      <Link href="/" className="text-sm text-slate-500 hover:text-slate-800">
+    <main className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-8 sm:py-8">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+      >
         ← Dashboard
       </Link>
 
-      {!status && !error && <Spinner label="Loading workflow…" />}
+      {!status && !error && (
+        <div className="space-y-3">
+          <SkeletonCard lines={2} />
+          <SkeletonCard lines={4} />
+        </div>
+      )}
       {error && !status && (
         <Card className="border-red-300 bg-red-50 p-4 text-sm text-red-800">
           {error}
@@ -228,25 +269,34 @@ export default function WorkflowDetailPage({
 
       {status && (
         <>
-          <header className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h1 className="text-2xl font-semibold">{status.human_ref}</h1>
-              <p className="text-sm text-slate-500">
-                stage: {status.stage ?? "—"}
-                {!polling && status.status !== "COMPLETED" && (
-                  <span className="ml-2 font-medium text-red-700">
-                    ● Action required — polling paused
+          <div className="animate-fade-up rounded-2xl bg-ink-950 px-5 py-4 text-white shadow-pop sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-xl font-black tracking-tight sm:text-2xl">
+                    {status.human_ref}
+                  </h1>
+                  <StatusChip status={status.status} />
+                </div>
+                <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-400">
+                  <span>
+                    stage: <span className="font-semibold text-slate-200">{status.stage ?? "—"}</span>
                   </span>
-                )}
-              </p>
+                  <LivePill
+                    active={polling}
+                    label={polling ? "Live · updating every 2s" : status.status === "COMPLETED" ? "Complete" : "Paused · action required"}
+                  />
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <DemoGuide workflowId={id} />
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <DemoGuide workflowId={id} />
-              <StatusChip status={status.status} />
-            </div>
-          </header>
+          </div>
 
           <StageTracker stages={status.stage_statuses} />
+
+          <AgentActivity status={status} runs={runs} events={audit} polling={polling} />
 
           <CheckpointBanner
             workflowId={id}
@@ -262,33 +312,42 @@ export default function WorkflowDetailPage({
             <InputsCard workflowId={id} onStarted={restart} />
           )}
 
-          <nav className="flex gap-1 border-b border-slate-200">
-            {(["overview", "validation", "findings", "report", "audit"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`px-4 py-2 text-sm font-medium capitalize ${
-                  tab === t
-                    ? "border-b-2 border-slate-900 text-slate-900"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
-              >
-                {t}
-                {t === "findings" && findings?.length ? ` (${findings.length})` : ""}
-              </button>
-            ))}
+          <nav className="sticky top-14 z-30 -mx-1 flex gap-1 overflow-x-auto bg-[#eef1f6]/95 px-1 py-1 backdrop-blur" aria-label="Workflow sections">
+            {(["overview", "validation", "findings", "report", "audit"] as Tab[]).map((t) => {
+              const active = tab === t;
+              const count =
+                t === "findings" && findings?.length ? ` (${findings.length})` : "";
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  aria-current={active ? "page" : undefined}
+                  className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold capitalize transition-all ${
+                    active
+                      ? "bg-ink-900 text-white shadow-sm"
+                      : "text-slate-500 hover:bg-white hover:text-slate-800"
+                  }`}
+                >
+                  {t}
+                  {count}
+                </button>
+              );
+            })}
           </nav>
 
           {tab === "overview" && (
             <div className="space-y-4">
               <KpiCards metrics={metrics} loading={metricsLoading} />
-              <ChartsPanel workflowId={id} />
-              <Card className="p-4 text-sm text-slate-600">
-                {polling
-                  ? "Live — updating every 2s while the pipeline runs."
-                  : "Paused — resolve the checkpoint above to resume."}{" "}
+              <ChartsPanel workflowId={id} validation={validation} />
+              <Card className="flex flex-wrap items-center justify-between gap-2 p-4 text-sm text-slate-600">
+                <span className="flex items-center gap-2">
+                  <span className={`live-dot ${polling ? "bg-emerald-500 text-emerald-500" : "bg-slate-300 text-slate-300"}`} />
+                  {polling
+                    ? "Live — updating every 2s while the pipeline runs."
+                    : "Paused — resolve the checkpoint above to resume."}
+                </span>
                 <button
-                  className="underline hover:text-slate-900"
+                  className="font-semibold text-blue-700 underline-offset-2 hover:underline"
                   onClick={() => {
                     void refresh();
                     void loadSecondary();
