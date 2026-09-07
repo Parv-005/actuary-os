@@ -152,6 +152,7 @@ class OpenAICompatibleClient(BaseLLMClient):
             api_key=settings.llm_api_key,
             timeout=settings.llm_timeout_s,
             max_retries=0,  # retries handled here
+            default_headers=settings.llm_extra_headers_dict or None,
         )
         self.model = settings.llm_model
 
@@ -276,9 +277,11 @@ class OpenAICompatibleClient(BaseLLMClient):
         import httpx
 
         try:
+            headers = {"Authorization": f"Bearer {settings.llm_api_key}"}
+            headers.update(settings.llm_extra_headers_dict)
             r = await httpx.AsyncClient(timeout=10).get(
                 f"{settings.llm_base_url.rstrip('/')}/models",
-                headers={"Authorization": f"Bearer {settings.llm_api_key}"},
+                headers=headers,
             )
             return r.status_code == 200
         except httpx.HTTPError:

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     llm_cost_in_per_mtok: float = 0.15   # $ per 1M input tokens (mini-class)
     llm_cost_out_per_mtok: float = 0.60  # $ per 1M output tokens
     llm_timeout_s: float = 170.0         # agent cap is 180s (§6.6)
+    # Optional extra HTTP headers for the LLM endpoint, as a JSON object
+    # string, e.g. '{"x-opencode-session":"..."}'. Needed by proxies that
+    # route/authenticate via headers rather than the bearer key alone.
+    llm_extra_headers: str = "{}"
 
     cors_origins: str = "http://localhost:3000"
     rate_limit_enabled: bool = True
@@ -46,6 +50,18 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def llm_extra_headers_dict(self) -> dict[str, str]:
+        import json
+
+        try:
+            parsed = json.loads(self.llm_extra_headers or "{}")
+        except (ValueError, TypeError):
+            return {}
+        if not isinstance(parsed, dict):
+            return {}
+        return {str(k): str(v) for k, v in parsed.items()}
 
 
 settings = Settings()
