@@ -93,15 +93,7 @@ function DemoHero({ onLaunch }: { onLaunch: () => void }) {
   );
 }
 
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning, Actuary.";
-  if (h < 17) return "Good afternoon, Actuary.";
-  return "Good evening, Actuary.";
-}
-
 export default function Dashboard() {
-  const [hello] = useState(greeting);
   const router = useRouter();
   const [workflows, setWorkflows] = useState<WorkflowSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -163,7 +155,7 @@ export default function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-            {hello}
+            Dashboard
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             AI prepares every review — you decide at each gate.
